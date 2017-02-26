@@ -16,11 +16,11 @@
 /*---------------Module Defines-----------------------------*/
 
 // Pinout
-#define PIN_POT 3           // Input pin for potentiometer
+#define PIN_POT 3           	// Input pin for potentiometer
 
-#define PIN_MLEFT_ENABLE 11    // Output pin for H Bridge
-#define PIN_MLEFT_A 12
-#define PIN_MLEFT_B 13
+#define PIN_MLEFT_ENABLE 11    	// Output pin for H Bridge
+#define PIN_MLEFT_A 12			// One side of drive
+#define PIN_MLEFT_B 13			// Other side of drive
 
 
 #define PIN_MRIGHT_ENABLE 10
@@ -63,11 +63,8 @@ void setup() {
   digitalWrite(PIN_MLEFT_B, LOW);
 }
 
-void loop() {
-  /*int pot_val = analogRead(PIN_POT);
-  int val = map(pot_val, 0, 1023, 0, 127);
-  setMotorSpeed(MLEFT, val);*/
-  
+void loop() { 
+  // control routine (temporary) 
   if(Serial.available()) {
     char motor = Serial.read();
     enum motorID select;
@@ -90,7 +87,13 @@ void loop() {
 }
 
 /* MOTOR API */
-// setMotorSpeed(
+// ---------
+// applyMotorSettings(void)
+// Writes to output pins to enforce the motor speeds and directions as they have been set.
+// 
+// setMotorSpeed(int motor, char val)
+// Takes a motor (one of MLEFT, MRIGHT, MFRONT, MBACK) and a speed [-127, 127]
+
 
 void applyMotorSettings() {
   for(int i = 0;i < MOTORS;i++) {
