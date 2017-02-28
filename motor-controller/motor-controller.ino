@@ -81,7 +81,7 @@ void loop() {
     } else if(motor == 'b'){
       select = MBACK;
     } else if(motor == 'f'){
-      select = MFRONT;l.
+      select = MFRONT;
     }
     int x = Serial.parseInt();
     Serial.println(x);
