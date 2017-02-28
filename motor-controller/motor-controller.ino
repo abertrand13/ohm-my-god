@@ -57,9 +57,9 @@ void applyMotorSettings(void);
 
 char motorPins[MOTORS][PINS_PER_MOTOR] = {
   {PIN_MLEFT_EN, PIN_MLEFT_A, PIN_MLEFT_B},
-  {PIN_MRIGHT_EN, PIN_MRIGHT_A, PIN_MRIGHT_B},
+  {PIN_MRIGHT_EN, PIN_MRIGHT_B, PIN_MRIGHT_A},
   {PIN_MFRONT_EN, PIN_MFRONT_A, PIN_MFRONT_B},
-  {PIN_MBACK_EN, PIN_MBACK_A, PIN_MBACK_B}
+  {PIN_MBACK_EN, PIN_MBACK_B, PIN_MBACK_A}
 };
 char motorSpeeds[MOTORS];
 
@@ -70,7 +70,13 @@ void setup() {
 }
 
 void loop() { 
-  // control routine (temporary) 
+  // control routine (temporary)
+  // to operate, just enter commands in the serial port
+  // eg:
+  // l127 sets left motor to full forward speed
+  // l-127 sets left motor to full reverse speed
+  // f127 set front motor to full forward speed
+  // b-128 reverses the back motor, whether it's going forward or backward
   if(Serial.available()) {
     char motor = Serial.read();
     enum motorID select;
