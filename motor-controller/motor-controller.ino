@@ -38,6 +38,10 @@
 #define MOTORS 4
 #define PINS_PER_MOTOR 3
 
+// Timers
+#define TIMER_0 0
+#define INTERVAL_0 2000
+
 // Motor Reference
 enum motorID {
   MLEFT,
@@ -47,11 +51,18 @@ enum motorID {
 };
 
 /*---------------Module Function Prototypes-----------------*/
+
 void setupPins(void);
 bool getMotorForward(int motor);
 char getMotorSpeed(int motor);
 void setMotorSpeed(int motor, char val);
+void moveLeft(char val);
+void moveRight(char val);
+void moveBack(char val);
+void moveForward(char val);
+void stopDriveMotors(void);
 void applyMotorSettings(void);
+void handleTimer(void);
 
 /*---------------Module Variables---------------------------*/
 
@@ -63,10 +74,15 @@ char motorPins[MOTORS][PINS_PER_MOTOR] = {
 };
 char motorSpeeds[MOTORS];
 
+
 /*---------------Main Functions-----------------------------*/
 void setup() {
   Serial.begin(9600);
   setupPins();
+
+  TMRArd_InitTimer(TIMER_0, INTERVAL_0);
+  setMotorSpeed(MLEFT, 100);
+  setMotorSpeed(MRIGHT, 100);
 }
 
 void loop() { 
@@ -99,7 +115,18 @@ void loop() {
     Serial.read(); //newline
   }
 
+  if(TMRArd_IsTimerExpired(TIMER_0)) {
+    handleTimer();
+  }
+
   applyMotorSettings();
+}
+
+void handleTimer() { 
+  flipMotorDirection(MLEFT);
+  flipMotorDirection(MRIGHT);
+  TMRArd_ClearTimerExpired(TIMER_0);
+  TMRArd_InitTimer(TIMER_0, INTERVAL_0);
 }
 
 /* MOTOR API */
@@ -131,6 +158,36 @@ char getMotorSpeed(int motor) {
 
 void setMotorSpeed(int motor, char val) {
   motorSpeeds[motor] = constrain(val, -127, 127);
+}
+
+void moveLeft(char val) {
+  char speedVal = constrain(val, -127, 127);
+  motorSpeeds[MFRONT] = -speedVal;
+  motorSpeeds[MBACK] = -speedVal;
+}
+
+void moveRight(char val) {
+  char speedVal = constrain(val, -127, 127);
+  motorSpeeds[MFRONT] = speedVal;
+  motorSpeeds[MBACK] = speedVal;
+}
+
+void moveBack(char val) {
+  char speedVal = constrain(val, -127, 127);
+  motorSpeeds[MLEFT] = -speedVal;
+  motorSpeeds[MRIGHT] = -speedVal;
+}
+
+void moveForward(char val) {
+  char speedVal = constrain(val, -127, 127);
+  motorSpeeds[MLEFT] = speedVal;
+  motorSpeeds[MRIGHT] = speedVal;
+}
+
+void stopDriveMotors() {
+  for(int i = 0;i < MOTORS;i++) {
+    motorSpeeds[i] = 0;
+  }
 }
 
 void flipMotorDirection(int motor) {
