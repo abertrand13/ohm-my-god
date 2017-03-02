@@ -64,6 +64,21 @@ void stopDriveMotors(void);
 void applyMotorSettings(void);
 void handleTimer(void);
 
+// Logic functions (other file)
+bool checkIRAlign(void);
+bool checkLeftLimitSwitchesAligned(void);
+bool checkFrontLimitSwitchesAligned(void);
+bool checkTape(void);
+void handleIRAlign(void);
+void handleTimerExpired(void);
+void handleLeftLimitSwitchesAligned(void);
+void handleFrontLimitSwitchesAligned(void);
+void handleTape(void);
+void handleReturnedLeft(void);
+void handleReturnTimerExpired(void);
+void handleRefillTimerExpired(void);
+void setupSensorPins(void);
+
 /*---------------Module Variables---------------------------*/
 
 char motorPins[MOTORS][PINS_PER_MOTOR] = {
@@ -79,8 +94,9 @@ char motorSpeeds[MOTORS];
 void setup() {
   Serial.begin(9600);
   setupPins();
+  setupSensorPins();
 
-  TMRArd_InitTimer(TIMER_0, INTERVAL_0);
+  //TMRArd_InitTimer(TIMER_0, INTERVAL_0);
   setMotorSpeed(MLEFT, 100);
   setMotorSpeed(MRIGHT, 100);
 }
@@ -118,6 +134,8 @@ void loop() {
   if(TMRArd_IsTimerExpired(TIMER_0)) {
     handleTimer();
   }
+
+  checkEvents();
 
   applyMotorSettings();
 }
@@ -195,7 +213,7 @@ void flipMotorDirection(int motor) {
 }
 
 void setupPins() {
-  pinMode(PIN_POT,        INPUT);
+  pinMode(PIN_POT,      INPUT);
 
   for(int i = 0;i < MOTORS;i++) {
     for(int j = 0;j < PINS_PER_MOTOR;j++) {

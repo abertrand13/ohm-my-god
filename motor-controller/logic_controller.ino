@@ -18,16 +18,16 @@
 // Pinout
 
 // Limit Switches
-#define PIN_LIMIT_BL X      // Back limit switch on left side
-#define PIN_LIMIT_FL X      // Front limit switch on left side
-#define PIN_LIMIT_LF X      // Left limit switch on front side
-#define PIN_LIMIT_RF X      // Right limit switch on front side
+#define PIN_LIMIT_BL A0     // Back limit switch on left side
+#define PIN_LIMIT_FL A1     // Front limit switch on left side
+#define PIN_LIMIT_LF A2     // Left limit switch on front side
+#define PIN_LIMIT_RF A3     // Right limit switch on front side
 
 // IR sensor 
-#define PIN_IR_ALIGN X      // IR sensor to align in safe space
+#define PIN_IR_ALIGN A4     // IR sensor to align in safe space
 
 // Tape sensor
-#define PIN_TAPE X          // Tape sensor
+#define PIN_TAPE A5         // Tape sensor
 
 #define TMR_ALIGN 0         // Timer to rotate away from IR sensor
 #define TMR_ALIGN_VAL 250   // Time to run timer for
@@ -55,7 +55,7 @@ enum globalState {
   RETURN_LEFT,    // Move left to return to safe space
   RETURN_BACK,    // Move back to return to safe space
   REFILL          // Pause in the safe space for refill
-}
+};
 
 /*---------------Function Prototypes------------------------*/
 
@@ -64,21 +64,6 @@ enum globalState {
 
 enum globalState state;
 bool onTape;
-
-
-void setup() {
-  setupPins();
-  state
-}
-
-void loop() {
-  checkEvents();
-  
-  // The following called in separate motor code
-  // applyMotorSettings();
-}
-
-
 
 /*---------------Event Detection Functions------------------*/
 
@@ -110,7 +95,7 @@ void checkEvents() {
       break;
 
     case MOVE2LEFT_1: case MOVE2MID_1: case MOVE2RIGHT:
-    case MOVE2MID_2: case MOVE2LEFT_2
+    case MOVE2MID_2: case MOVE2LEFT_2:
       if(checkTape()) { handleTape(); }
       break;
 
@@ -261,13 +246,15 @@ void handleRefillTimerExpired() {
   moveForward(100);
 }
 
-/*---------------Other Module Functions---------------------*/
 
-void setupPins() {
+/*---------------Other Module Functions--------------------*/
+
+void setupSensorPins() {
   pinMode(PIN_LIMIT_BL, INPUT);
   pinMode(PIN_LIMIT_FL, INPUT);
   pinMode(PIN_LIMIT_LF, INPUT);
   pinMode(PIN_LIMIT_RF, INPUT);
+  pinMode(PIN_TAPE,     INPUT);
 
   pinMode(PIN_IR_ALIGN, INPUT);
 }
