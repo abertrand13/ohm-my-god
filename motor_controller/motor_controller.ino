@@ -47,13 +47,20 @@ void setupPins(void);
 
 // Logic functions
 bool checkIRAlign(void);
+bool checkBackLeftLimitSwitch(void);
+bool checkFrontLeftLimitSwitch(void);
 bool checkLeftLimitSwitchesAligned(void);
 bool checkFrontLimitSwitchesAligned(void);
 bool checkTape(void);
+
+// Event handlers
 void handleIRAlign(void);
 void handleTurnTimerExpired(void);
+void handleFrontContact(void);
+void handleBackContact(void);
 void handleLeftLimitSwitchesAligned(void);
 void handleFrontLimitSwitchesAligned(void);
+void correctLimitSwitches(void);
 void handleTape(void);
 void handleReturnedLeft(void);
 void handleReturnTimerExpired(void);
@@ -67,6 +74,8 @@ enum globalState {
   ALIGN_IR,       // Get initial bearings with IR
   ALIGN_TURN,     // Turn to face loosely right
   ALIGN_LEFT,     // Move to hug the left wall
+  ALIGN_LEFT_FRONT, // Switch to move only front wheel
+  ALIGN_LEFT_BACK, // Switch to move only back wheel
   ALIGN_FRONT,    // Move to hug the front wall
   MOVE2LEFT_1,    // Move to face the left goal
   SHOOT_LEFT_1,   // Shoot on the left goal
@@ -223,15 +232,36 @@ void checkEvents() {
       if (TMRArd_IsTimerExpired(TMR_ALIGN)) { handleTurnTimerExpired(); }
       break;
 
-    case ALIGN_LEFT:
-      if(checkLeftLimitSwitchesAligned()) handleLeftLimitSwitchesAligned();
-      break;
+    case ALIGN_LEFT: {
+	  bool frontContact = checkFrontLeftLimitSwitch();
+	  bool backContact = checkBackLeftLimitSwitch();
+      if(checkLeftLimitSwitchesAligned()) { handleLeftLimitSwitchesAligned(); }
+	  else if(frontContact) { handleFrontContact(); }
+	  else if(backContact) { handleBackContact(); }
+      break; } // braces for scoping
+
+	case ALIGN_LEFT_FRONT:
+	  if(checkLeftLimitSwitchesAligned()) { handleLeftLimitSwitchesAligned(); }
+	  else {
+		state = ALIGN_LEFT;
+		moveLeft(100);
+	  }
+	  break;
+
+	case ALIGN_LEFT_BACK:
+	  if(checkLeftLimitSwitchesAligned()) { handleLeftLimitSwitchesAligned(); }
+	  else {
+		state = ALIGN_LEFT;
+		moveLeft(100);
+	  }
+	  break;
 
     case ALIGN_FRONT:
       if(checkFrontLimitSwitchesAligned()) { handleFrontLimitSwitchesAligned(); }
       break;
 
-    case MOVE2LEFT_1: 
+    case MOVE2LEFT_1:
+	  correctLimitSwitches();
       break;
 
     case MOVE2MID_1: 
@@ -272,7 +302,7 @@ bool checkIRAlign() {
 }
 
 /******************************************************************************
-  Function:    checkLeftLimitSwitchesAlign
+  Function:    checkLeftLimitSwitchesAlign (and friends because i'm lazy)
   Contents:    Checks to see whether or not we have made contact with both
                limit switches on the left side of the robot. The assumption
                is that once we have, we are flush with the left wall of
@@ -283,8 +313,16 @@ bool checkIRAlign() {
                'Normally Open' state.
 ******************************************************************************/
 
+bool checkBackLeftLimitSwitch() {
+  return digitalRead(PIN_LIMIT_BL);
+}
+
+bool checkFrontLeftLimitSwitch() {
+  return digitalRead(PIN_LIMIT_FL);
+}
+
 bool checkLeftLimitSwitchesAligned() {
-  return analogRead(PIN_LIMIT_BL) & analogRead(PIN_LIMIT_FL);
+  return digitalRead(PIN_LIMIT_BL) & digitalRead(PIN_LIMIT_FL);
 }
 
 /******************************************************************************
@@ -346,10 +384,27 @@ void handleLeftLimitSwitchesAligned() {
   moveForward(100);
 }
 
+void handleFrontContact() {
+  state = ALIGN_LEFT_BACK;
+  stopDriveMotors();
+  setMotorSpeed(MBACK, -50);
+}
+
+void handleBackContact() {
+  state = ALIGN_LEFT_FRONT;
+  stopDriveMotors();
+  setMotorSpeed(MFRONT, -50);
+}
+
 void handleFrontLimitSwitchesAligned() {
   state = MOVE2LEFT_1;
   stopDriveMotors();
   moveRight(100);
+}
+
+void correctLimitSwitches() {
+  setMotorSpeed(MRIGHT, digitalRead(PIN_LIMIT_RF) ? 0 : 50);
+  setMotorSpeed(MLEFT, digitalRead(PIN_LIMIT_LF) ? 0 : 50);
 }
 
 void handleTape() {
