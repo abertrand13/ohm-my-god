@@ -46,6 +46,7 @@ enum motorID {
 
 void applyMotorSettings(void);
 bool getMotorForward(int motor);
+void setMotorSpeed(int motor, char val);
 char getMotorSpeed(int motor);
 void moveLeft(char val);
 void moveRight(char val);
