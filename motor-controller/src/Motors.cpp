@@ -17,8 +17,9 @@ char motorPins[MOTORS][PINS_PER_MOTOR] = {
   {PIN_MLEFT_EN, PIN_MLEFT_A, PIN_MLEFT_B},
   {PIN_MRIGHT_EN, PIN_MRIGHT_B, PIN_MRIGHT_A},
   {PIN_MFRONT_EN, PIN_MFRONT_A, PIN_MFRONT_B},
-  {PIN_MBACK_EN, PIN_MBACK_B, PIN_MBACK_A}
+  {PIN_MBACK_EN, PIN_MBACK_A, PIN_MBACK_B}
 };
+
 char motorSpeeds[MOTORS];
 
 /*===========================Module Code=====================================*/

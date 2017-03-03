@@ -31,18 +31,21 @@
 #define PIN_TAPE A5         // Tape sensor
 
 // Timers
-#define TMR_ALIGN 0         // Timer to rotate away from IR sensor
+#define TMR_ALIGN 1         // Timer to rotate away from IR sensor
 #define TMR_ALIGN_VAL 250   // Time to run timer for
-#define TMR_RETURN 0        // Timer to get to safe space
+#define TMR_RETURN 2        // Timer to get to safe space
 #define TMR_RETURN_VAL 1000 // Time to run return timer for
-#define TMR_REFILL 0        // Timer to pause for refilling
+#define TMR_REFILL 3        // Timer to pause for refilling
 #define TMR_REFILL_VAL 1500 // Time to run refill timer for
+
+#define TIMER_0 0
+#define ONE_SEC 1000
 
 
 /*---------------Module Function Prototypes-----------------*/
 void setupPins(void);
 
-// Logic functions (other file)
+// Logic functions
 bool checkIRAlign(void);
 bool checkLeftLimitSwitchesAligned(void);
 bool checkFrontLimitSwitchesAligned(void);
@@ -56,6 +59,9 @@ void handleReturnedLeft(void);
 void handleReturnTimerExpired(void);
 void handleRefillTimerExpired(void);
 void setupSensorPins(void);
+
+// Temporary Testing functions 
+void printStates(void);
 
 enum globalState {
   ALIGN_IR,       // Get initial bearings with IR
@@ -81,7 +87,6 @@ enum globalState {
 enum globalState state;
 bool onTape;
 
-
 /*---------------Main Functions-----------------------------*/
 void setup() {
   Serial.begin(9600);
@@ -90,6 +95,8 @@ void setup() {
 
   // setMotorSpeed(MLEFT, 100);
   // setMotorSpeed(MRIGHT, 100);
+  TMRArd_InitTimer(TIMER_0, ONE_SEC);
+  state = ALIGN_TURN;
 }
 
 void loop() { 
@@ -114,17 +121,85 @@ void loop() {
     }
     int x = Serial.parseInt();
     Serial.println(x);
-    if(x != -128) {
-      setMotorSpeed(select, char(x));
-    } else {
-      flipMotorDirection(select);
-    }
+
+    setMotorSpeed(select, char(x));
+
+    // if(x != -128) {
+    //   setMotorSpeed(select, char(x));
+    // } else {
+    //   flipMotorDirection(select);
+    // }
     Serial.read(); //newline
   }
   
   checkEvents();
 
   applyMotorSettings();
+
+  if(TMRArd_IsTimerExpired(TIMER_0)) printStates();    
+}
+
+void printStates(void) {
+  if(checkFrontLimitSwitchesAligned()) Serial.println("FRONT SWITCHES ALIGNED");
+  if(checkLeftLimitSwitchesAligned()) Serial.println("LEFT SWITCHES ALIGNED");
+
+  Serial.print("state = ");
+
+  switch(state) {
+      case ALIGN_IR:
+      Serial.println("ALIGN_IR");
+      break;
+      
+      case ALIGN_TURN:
+      Serial.println("ALIGN_TURN");
+      break;
+
+      case ALIGN_LEFT:
+      Serial.println("ALIGN_LEFT");
+      break;
+
+      case ALIGN_FRONT:
+      Serial.println("ALIGN_FRONT");
+      break;
+
+      case MOVE2LEFT_1:
+      Serial.println("MOVE2LEFT_1"); 
+      break;
+
+      case MOVE2MID_1:
+      Serial.println("MOVE2MID_1"); 
+      break; 
+
+      case MOVE2RIGHT:
+      Serial.println("MOVE2RIGHT");
+      break;
+
+      case MOVE2MID_2:
+      Serial.println("MOVE2MID_2");
+
+      case MOVE2LEFT_2:
+      break;
+
+      Serial.println("MOVE2LEFT_2");
+      break;
+
+      case RETURN_LEFT:
+      Serial.println("RETURN_LEFT");
+      break;
+
+      case RETURN_BACK:
+      Serial.println("RETURN_BACK");
+      break;
+
+      case REFILL:
+      Serial.println("REFILL");
+      break;
+    }
+
+  Serial.println("~~~~~~~~~~~~~");
+
+
+  TMRArd_InitTimer(TIMER_0, ONE_SEC);
 }
 
 /*---------------Event Detection Functions------------------*/
@@ -141,7 +216,7 @@ void loop() {
 void checkEvents() {
   switch(state) {
     case ALIGN_IR:
-      if (checkIRAlign()) { handleIRAlign; }
+      if (checkIRAlign()) { handleIRAlign(); }
       break;
     
     case ALIGN_TURN:
@@ -149,15 +224,23 @@ void checkEvents() {
       break;
 
     case ALIGN_LEFT:
-      if(checkLeftLimitSwitchesAligned) { handleLeftLimitSwitchesAligned(); }
+      if(checkLeftLimitSwitchesAligned()) handleLeftLimitSwitchesAligned();
       break;
 
     case ALIGN_FRONT:
-      if(checkFrontLimitSwitchesAligned) { handleFrontLimitSwitchesAligned(); }
+      if(checkFrontLimitSwitchesAligned()) { handleFrontLimitSwitchesAligned(); }
       break;
 
-    case MOVE2LEFT_1: case MOVE2MID_1: case MOVE2RIGHT:
-    case MOVE2MID_2: case MOVE2LEFT_2:
+    case MOVE2LEFT_1: 
+      break;
+
+    case MOVE2MID_1: 
+      break;    
+    case MOVE2RIGHT:
+      break;
+    case MOVE2MID_2:
+      break;
+    case MOVE2LEFT_2:
       if(checkTape()) { handleTape(); }
       break;
 
@@ -201,7 +284,7 @@ bool checkIRAlign() {
 ******************************************************************************/
 
 bool checkLeftLimitSwitchesAligned() {
-  return digitalRead(PIN_LIMIT_BL) & digitalRead(PIN_LIMIT_FL);
+  return analogRead(PIN_LIMIT_BL) & analogRead(PIN_LIMIT_FL);
 }
 
 /******************************************************************************
@@ -217,7 +300,7 @@ bool checkLeftLimitSwitchesAligned() {
 ******************************************************************************/
 
 bool checkFrontLimitSwitchesAligned() {
-  return digitalRead(PIN_LIMIT_LF) & digitalRead(PIN_LIMIT_RF);
+  return analogRead(PIN_LIMIT_LF) & analogRead(PIN_LIMIT_RF);
 }
 
 /******************************************************************************
