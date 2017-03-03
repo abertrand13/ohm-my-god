@@ -12,7 +12,7 @@
 /*---------------Includes-----------------------------------*/
 
 #include <Timers.h>
-#include <Motors.h>
+#include "Motors.h"
 
 /*---------------Module Defines-----------------------------*/
 
