@@ -12,20 +12,28 @@
 /*---------------Includes-----------------------------------*/
 
 #include <Timers.h>
-#include <Flywheel.h>
+#include "Flywheel.h"
 
 /*---------------Module Defines-----------------------------*/
 
 
 /*---------------Module Function Prototypes-----------------*/
+void setupPins(void);
+
+
 
 /*---------------Main Functions-----------------------------*/
 
 void setup() {
+  Serial.begin(9600);
+  Seria1.begin(9600);
+  setupPins();
 
 }
 
 void loop() {
 
 }
+
+void setupPins();
 
