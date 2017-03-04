@@ -1,0 +1,5 @@
+Notes on things happening!
+
+Friday 3/17 - 3:41PM - Added a folder and files for the top arduino
+	* Name change might be in order - flywheel sounded ok. idk
+	* Making a library file for the flywheel motor

@@ -204,7 +204,6 @@ void printStates(void) {
       Serial.println("REFILL");
       break;
     }
-
   Serial.println("~~~~~~~~~~~~~");
 
 
