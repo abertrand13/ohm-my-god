@@ -34,6 +34,7 @@ Signals are enumerated as 1 of a possible list, and sent serially from arduino t
 ### Internal Implementation
 
 I'm envisioning a pretty simple scheme here:
+
 1. At the beginning of checkEvents(), each FSM will read in a serial character if one is available. That will go into some variable `signal`. If there's no signal available then `signal` will be set to null.
 2. Any states that rely on signals from the arduino will run a 'check signal' sort of function. That can be done inline (in the `case` statement), or we can just call a function and pass in `signal`. Note that we're going to have to create some new states. One example that immediately comes to mind is a state for 'wait for destination' that checks to see if a received signal was a 3, 4, 5, or 6, and then if it was updates the state to something like 'MOVE2LEFT' and begins moving. If it wasn't, it should do nothing. It won't block, but it will keep us motionless (which is what we want).
 
