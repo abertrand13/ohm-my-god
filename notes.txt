@@ -1,5 +1,6 @@
 Notes on things happening!
 
-Friday 3/17 - 3:41PM - Added a folder and files for the top arduino
-	* Name change might be in order - flywheel sounded ok. idk
-	* Making a library file for the flywheel motor
+Saturday 5/17 - 2:35AM 
+	* Search for "@Q:" to see questions I had that I left in comments
+	* overheard Karl recommending SPI for commms
+	* Search for "@TD:" for things that need to be done/changed

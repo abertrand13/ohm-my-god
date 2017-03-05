@@ -24,7 +24,8 @@
 #define PIN_LIMIT_LF A2     // Left limit switch on front side
 #define PIN_LIMIT_RF A3     // Right limit switch on front side
 
-// IR sensor 
+// IR sensor @Q @TD I think this should this be removed from this 
+// file bc sensing is happening in other arduino
 #define PIN_IR_ALIGN A4     // IR sensor to align in safe space
 
 // Tape sensor
@@ -53,6 +54,10 @@ bool checkLeftLimitSwitchesAligned(void);
 bool checkFrontLimitSwitchesAligned(void);
 bool checkTape(void);
 
+// Signal Functions
+void updateSignal(void);
+void sendSignal(void);
+
 // Event handlers
 void handleIRAlign(void);
 void handleTurnTimerExpired(void);
@@ -65,10 +70,8 @@ void handleTape(void);
 void handleReturnedLeft(void);
 void handleReturnTimerExpired(void);
 void handleRefillTimerExpired(void);
+void handleNextGoal(void);
 void setupSensorPins(void);
-
-// Temporary Testing functions 
-void printStates(void);
 
 enum globalState {
   ALIGN_IR,       // Get initial bearings with IR
@@ -77,16 +80,18 @@ enum globalState {
   ALIGN_LEFT_FRONT, // Switch to move only front wheel
   ALIGN_LEFT_BACK, // Switch to move only back wheel
   ALIGN_FRONT,    // Move to hug the front wall
+  WAIT4DEST,   // Waiting for 'Next Goal' signal after initial alignment @TD: @Q: do we need multiple different wait states?
   MOVE2LEFT_1,    // Move to face the left goal
   SHOOT_LEFT_1,   // Shoot on the left goal
   MOVE2MID_1,     // Move to face the middle goal
   SHOOT_MID_1,    // Shoot on the middle goal
   MOVE2RIGHT,     // Move to face the right goal
   SHOOT_RIGHT,    // Shoot on the right goal
-  MOVE2MID_2,     // Move to face the middle goal
+  MOVE2MID_2,     // Move to face the middle goal @Q: what's the difference btween this and MOVE2MID_1?
   SHOOT_MID_2,    // Shoot on the middle goal
   MOVE2LEFT_2,    // Move to face the left goal
   SHOOT_LEFT_2,   // Shoot on the left goal
+  MOVE2RIGHT_1,   // Move to face the right goal
   RETURN_LEFT,    // Move left to return to safe space
   RETURN_BACK,    // Move back to return to safe space
   REFILL          // Pause in the safe space for refill
@@ -95,17 +100,24 @@ enum globalState {
 /*---------------Module Variables---------------------------*/
 enum globalState state;
 bool onTape;
+char signal;
 
 /*---------------Main Functions-----------------------------*/
 void setup() {
   Serial.begin(9600);
   setupPins();
   setupMotorPins();
+  
+  pinMode(A5, OUTPUT);
+  delay(1000);
+  digitalWrite(A5, HIGH);
+  delay(500);
+  digitalWrite(A5, LOW);
 
   // setMotorSpeed(MLEFT, 100);
   // setMotorSpeed(MRIGHT, 100);
   TMRArd_InitTimer(TIMER_0, ONE_SEC);
-  state = ALIGN_TURN;
+  state = ALIGN_IR;
 }
 
 void loop() { 
@@ -138,76 +150,15 @@ void loop() {
     // } else {
     //   flipMotorDirection(select);
     // }
-    Serial.read(); //newline
+    Serial.read(); //newline @Q: Why is this here?
   }
   
   checkEvents();
 
   applyMotorSettings();
 
-  if(TMRArd_IsTimerExpired(TIMER_0)) printStates();    
-}
-
-void printStates(void) {
-  if(checkFrontLimitSwitchesAligned()) Serial.println("FRONT SWITCHES ALIGNED");
-  if(checkLeftLimitSwitchesAligned()) Serial.println("LEFT SWITCHES ALIGNED");
-
-  Serial.print("state = ");
-
-  switch(state) {
-      case ALIGN_IR:
-      Serial.println("ALIGN_IR");
-      break;
-      
-      case ALIGN_TURN:
-      Serial.println("ALIGN_TURN");
-      break;
-
-      case ALIGN_LEFT:
-      Serial.println("ALIGN_LEFT");
-      break;
-
-      case ALIGN_FRONT:
-      Serial.println("ALIGN_FRONT");
-      break;
-
-      case MOVE2LEFT_1:
-      Serial.println("MOVE2LEFT_1"); 
-      break;
-
-      case MOVE2MID_1:
-      Serial.println("MOVE2MID_1"); 
-      break; 
-
-      case MOVE2RIGHT:
-      Serial.println("MOVE2RIGHT");
-      break;
-
-      case MOVE2MID_2:
-      Serial.println("MOVE2MID_2");
-
-      case MOVE2LEFT_2:
-      break;
-
-      Serial.println("MOVE2LEFT_2");
-      break;
-
-      case RETURN_LEFT:
-      Serial.println("RETURN_LEFT");
-      break;
-
-      case RETURN_BACK:
-      Serial.println("RETURN_BACK");
-      break;
-
-      case REFILL:
-      Serial.println("REFILL");
-      break;
-    }
-  Serial.println("~~~~~~~~~~~~~");
-
-
-  TMRArd_InitTimer(TIMER_0, ONE_SEC);
+  // For Debugging * NOTE will interrupt Serial Comms
+  // if(TMRArd_IsTimerExpired(TIMER_0)) printStates();    
 }
 
 /*---------------Event Detection Functions------------------*/
@@ -222,9 +173,11 @@ void printStates(void) {
 ******************************************************************************/
 
 void checkEvents() {
+  updateSignal();
+
   switch(state) {
     case ALIGN_IR:
-      if (checkIRAlign()) { handleIRAlign(); }
+      if (checkIRAlign()) handleIRAlign();
       break;
     
     case ALIGN_TURN:
@@ -259,8 +212,12 @@ void checkEvents() {
       if(checkFrontLimitSwitchesAligned()) { handleFrontLimitSwitchesAligned(); }
       break;
 
+    case WAIT4DEST:
+      handleNextGoal();
+      break;
+
     case MOVE2LEFT_1:
-	  correctLimitSwitches();
+      correctLimitSwitches();
       break;
 
     case MOVE2MID_1: 
@@ -297,7 +254,7 @@ void checkEvents() {
 ******************************************************************************/
 
 bool checkIRAlign() {
-  return digitalRead(PIN_IR_ALIGN);
+  return signal == '1';
 }
 
 /******************************************************************************
@@ -366,8 +323,14 @@ bool checkTape() {
 /*---------------Event Handler Functions--------------------*/
 
 void handleIRAlign() {
-  state = ALIGN_TURN;
+  // state = ALIGN_TURN; //commented for serial comms testing - uncomment when done
+  
   TMRArd_InitTimer(TMR_ALIGN, TMR_ALIGN_VAL); 
+
+  /* For Serial Comms testing */
+  digitalWrite(13, HIGH);
+  delay(1000);
+  digitalWrite(13, LOW);
 }
 
 void handleTurnTimerExpired() {
@@ -396,9 +359,13 @@ void handleBackContact() {
 }
 
 void handleFrontLimitSwitchesAligned() {
-  state = MOVE2LEFT_1;
-  stopDriveMotors();
-  moveRight(100);
+  signal = '2';
+  state = WAIT4DEST;
+
+  // default testing instructions when serial comm isn't being received - uncomment when serial is working
+  // state = MOVE2LEFT_1; 
+  // stopDriveMotors();
+  // moveRight(100);
 }
 
 void correctLimitSwitches() {
@@ -443,6 +410,44 @@ void handleRefillTimerExpired() {
   state = ALIGN_FRONT;
   TMRArd_ClearTimerExpired(TMR_REFILL);
   moveForward(100);
+}
+
+void handleNextGoal() { // Checks for a signal input from the flywheel controller of where to go next - sends output signal if none received  
+  switch(signal) {
+    case '3':
+    state = MOVE2LEFT_1;
+    break;
+
+    case '4':
+    state = MOVE2MID_1;
+    break;
+
+    case '5':
+    state = MOVE2RIGHT_1;
+    break;
+
+    case '6':
+    state = REFILL; // @Q: @TD: New state(s) needed for "return to refill" ?
+    break;
+
+    default:
+    sendSignal(); // i.e. if you haven't already told me where to go, I'm telling you that I'm ready for further instructions!
+    // @Q: is this where this should go?
+    break;
+  }
+}
+
+void updateSignal() {
+  if(Serial.available()) {
+    signal = Serial.read();
+  } else {
+    signal = '0'; // @Q: chars are single quotes - is that what I should use?
+  }
+  Serial.read();
+}
+
+void sendSignal() {
+  Serial.write(signal);
 }
 
 void setupPins() {
