@@ -56,7 +56,7 @@ bool checkTape(void);
 
 // Signal Functions
 void updateSignal(void);
-void sendSignal(void);
+void sendSignal(char signal);
 
 // Event handlers
 void handleIRAlign(void);
@@ -100,7 +100,7 @@ enum globalState {
 /*---------------Module Variables---------------------------*/
 enum globalState state;
 bool onTape;
-char signal;
+char inputSignal;
 
 /*---------------Main Functions-----------------------------*/
 void setup() {
@@ -118,6 +118,7 @@ void setup() {
   // setMotorSpeed(MRIGHT, 100);
   TMRArd_InitTimer(TIMER_0, ONE_SEC);
   state = ALIGN_IR;
+  inputSignal = '0';
 }
 
 void loop() { 
@@ -128,30 +129,30 @@ void loop() {
   // l-127 sets left motor to full reverse speed
   // f127 set front motor to full forward speed
   // b-128 reverses the back motor, whether it's going forward or backward
-  if(Serial.available()) {
-    char motor = Serial.read();
-    enum motorID select;
-    if(motor == 'l') {
-      select = MLEFT;
-    } else if(motor == 'r'){
-      select = MRIGHT;
-    } else if(motor == 'b'){
-      select = MBACK;
-    } else if(motor == 'f'){
-      select = MFRONT;
-    }
-    int x = Serial.parseInt();
-    Serial.println(x);
+  // if(Serial.available()) {
+  //   char motor = Serial.read();
+  //   enum motorID select;
+  //   if(motor == 'l') {
+  //     select = MLEFT;
+  //   } else if(motor == 'r'){
+  //     select = MRIGHT;
+  //   } else if(motor == 'b'){
+  //     select = MBACK;
+  //   } else if(motor == 'f'){
+  //     select = MFRONT;
+  //   }
+  //   int x = Serial.parseInt();
+  //   Serial.println(x);
 
-    setMotorSpeed(select, char(x));
+  //   setMotorSpeed(select, char(x));
 
-    // if(x != -128) {
-    //   setMotorSpeed(select, char(x));
-    // } else {
-    //   flipMotorDirection(select);
-    // }
-    Serial.read(); //newline @Q: Why is this here?
-  }
+  //   // if(x != -128) {
+  //   //   setMotorSpeed(select, char(x));
+  //   // } else {
+  //   //   flipMotorDirection(select);
+  //   // }
+  //   Serial.read(); //newline @Q: Why is this here?
+  // }
   
   checkEvents();
 
@@ -254,7 +255,7 @@ void checkEvents() {
 ******************************************************************************/
 
 bool checkIRAlign() {
-  return signal == '1';
+  return inputSignal == '1';
 }
 
 /******************************************************************************
@@ -326,11 +327,7 @@ void handleIRAlign() {
   // state = ALIGN_TURN; //commented for serial comms testing - uncomment when done
   
   TMRArd_InitTimer(TMR_ALIGN, TMR_ALIGN_VAL); 
-
-  /* For Serial Comms testing */
-  digitalWrite(13, HIGH);
-  delay(1000);
-  digitalWrite(13, LOW);
+  Serial.println("YEET");
 }
 
 void handleTurnTimerExpired() {
@@ -359,7 +356,7 @@ void handleBackContact() {
 }
 
 void handleFrontLimitSwitchesAligned() {
-  signal = '2';
+  sendSignal('2');
   state = WAIT4DEST;
 
   // default testing instructions when serial comm isn't being received - uncomment when serial is working
@@ -413,7 +410,7 @@ void handleRefillTimerExpired() {
 }
 
 void handleNextGoal() { // Checks for a signal input from the flywheel controller of where to go next - sends output signal if none received  
-  switch(signal) {
+  switch(inputSignal) {
     case '3':
     state = MOVE2LEFT_1;
     break;
@@ -431,22 +428,20 @@ void handleNextGoal() { // Checks for a signal input from the flywheel controlle
     break;
 
     default:
-    sendSignal(); // i.e. if you haven't already told me where to go, I'm telling you that I'm ready for further instructions!
-    // @Q: is this where this should go?
     break;
   }
 }
 
 void updateSignal() {
   if(Serial.available()) {
-    signal = Serial.read();
+    inputSignal = Serial.read();
   } else {
-    signal = '0'; // @Q: chars are single quotes - is that what I should use?
+    inputSignal = '0'; // @Q: chars are single quotes - is that what I should use?
   }
-  Serial.read();
+  Serial.read(); // reading new line character
 }
 
-void sendSignal() {
+void sendSignal(char signal) {
   Serial.write(signal);
 }
 

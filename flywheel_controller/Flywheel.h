@@ -23,6 +23,5 @@ void setFlywheelMotorSpeed(char val);
 void stopFlywheelMotor(void);
 void setupMotorPins(void);
 
-// Fast PWM
-void SetupTimerInterrupt(void);
-void updatePWM(void);
+// Slow PWM
+void updateDutyCycle(void);

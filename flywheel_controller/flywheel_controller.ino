@@ -12,7 +12,6 @@
 /*---------------Includes-----------------------------------*/
 
 #include "Flywheel.h"
-#include <Pulse.h>
 #include <Timers.h>
 
 
@@ -33,18 +32,19 @@ void handleIRAlign(void);
 
 // Signal Functions
 void updateSignal(void);
-void sendSignal(void);
+void sendSignal(char signal);
 
 enum globalState {
 	ALIGN_IR, // Getting initial bearings with IR
 	IR_FOUND, // IR beacon has been located, and commm is being sent
-	SEND_INSTRUCTIONS // @TD: change this name to something better 
+	SEND_INSTRUCTIONS, // @TD: change this name to something better 
 	// - is a placeholder to say "I know you've received my instructions, 
+  WAIT
 };
 
 /*---------------Module Variables---------------------------*/
 enum globalState state;
-char signal;
+char inputSignal;
 
 /*---------------Main Functions-----------------------------*/
 
@@ -57,8 +57,8 @@ void setup() {
   state = ALIGN_IR;
 
   // SetupTimerInterrupt();
-  InitPulse(PIN_FLY_EN, 990);
-  Pulse(10);
+  // InitPulse(PIN_FLY_EN, 990);
+  // Pulse(10);
   // Timer for testing serial comms
   // TMRArd_InitTimer(0, 5000);
 }
@@ -99,19 +99,17 @@ void checkEvents() {
 
   switch(state) {
   	case ALIGN_IR:
-  		if (checkIRAlign()) { handleIRAlign(); } // Actual code 
-  		
-  		// if(TMRArd_IsTimerExpired(0)) handleIRAlign(); // Testing Code for serial comm
-
-      	break;
+  		// if (checkIRAlign()) { handleIRAlign(); } // Actual code 
+  		if(TMRArd_IsTimerExpired(0)) handleIRAlign(); // Testing Code for serial comm
+    	break;
   	case IR_FOUND:
-  		sendSignal();
-  		if(signal == '2') state = SEND_INSTRUCTIONS;
+  		if(inputSignal == '2') state = SEND_INSTRUCTIONS;
 		break;
-	case SEND_INSTRUCTIONS: // @TD this should be broken into two states (decide instructions and send? Idk)
-		handleSendInstructions();
-		sendSignal();
+	  case SEND_INSTRUCTIONS: // @TD this should be broken into two states (decide instructions and send? Idk)
+		  handleSendInstructions();
 		break;
+    case WAIT:
+    break;
   }
 }
 
@@ -120,29 +118,30 @@ bool checkIRAlign() {
 }
 
 void handleIRAlign() {
-  pinMode(13, OUTPUT);
-	digitalWrite(13, HIGH);
+  // pinMode(13, OUTPUT);
+	// digitalWrite(13, HIGH);
 	// delay(1000);
-	digitalWrite(13, LOW);
+	// digitalWrite(13, LOW);
 	state = IR_FOUND;
-	signal = '1';
+  sendSignal('1');
 }
 
 void handleSendInstructions() {
 	// @TD: logic and stuff to decide what instructions to send
-	signal = '3';
+	sendSignal('3');
+  state = WAIT;
 }
 
 void updateSignal() {
   if(Serial.available()) {
-		signal = Serial.read();
+		inputSignal = Serial.read();
 	} else {
-		signal = '0'; // @Q: chars are single quotes - is that what I should use?
+		inputSignal = '0'; // @Q: chars are single quotes - is that what I should use?
 	}
-	Serial.read();
+	Serial.read(); 
 }
 
-void sendSignal() {
+void sendSignal(char signal) {
 	Serial.write(signal);
 }
 
