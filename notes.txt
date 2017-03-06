@@ -1,6 +1,13 @@
 Notes on things happening!
 
-Saturday 5/17 - 2:35AM 
+Sunday 5/17 - 2:35AM 
 	* Search for "@Q:" to see questions I had that I left in comments
 	* overheard Karl recommending SPI for commms
 	* Search for "@TD:" for things that need to be done/changed
+
+Sunday 5/17 - 3:15PM
+	* Worked a lot on the serial communications. Provided the backbone code for being able to implement serial comms properly. Included two functions and a module variable. Also implemented the proper locations for sending signals 1 - 6. 
+	* Could not actually get confirmation on working serial. Was unable to debug with serial monitor or onboard led because both were in use. 
+	* Linear regulator on motor controller arduino fried for some reason (even though upper arduino was powered via same rails and is fine). TA blamed terrible chinese components. Arduino still works if plugged in via pc
+	** We should change the system so that arduino's are powered from 5V rail - maybe pull from h-bridges
+	* Redeemed myself after terrible work session by implementing PWM in the upper arduino - using the Pulse arduino library, but some code for duty cycles is also included and can be switched if necessary
