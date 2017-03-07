@@ -42,7 +42,6 @@
 #define TIMER_0 0
 #define ONE_SEC 1000
 
-
 /*---------------Module Function Prototypes-----------------*/
 void setupPins(void);
 
@@ -54,9 +53,10 @@ bool checkLeftLimitSwitchesAligned(void);
 bool checkFrontLimitSwitchesAligned(void);
 bool checkTape(void);
 
-// Signal Functions
+/* Signal Functions
+// now pulled out into separate library
 void updateSignal(void);
-void sendSignal(char signal);
+void sendSignal(char signal); */ 
 
 // Event handlers
 void handleIRAlign(void);
@@ -80,7 +80,7 @@ enum globalState {
   ALIGN_LEFT_FRONT, // Switch to move only front wheel
   ALIGN_LEFT_BACK, // Switch to move only back wheel
   ALIGN_FRONT,    // Move to hug the front wall
-  WAIT4DEST,   // Waiting for 'Next Goal' signal after initial alignment @TD: @Q: do we need multiple different wait states?
+  WAIT4DEST,   // Waiting for 'Next Goal' signal after initial alignment @TD: @Q: do we need multiple different wait states? @A: Don't think so.
   MOVE2LEFT_1,    // Move to face the left goal
   SHOOT_LEFT_1,   // Shoot on the left goal
   MOVE2MID_1,     // Move to face the middle goal
@@ -118,7 +118,7 @@ void setup() {
   // setMotorSpeed(MRIGHT, 100);
   TMRArd_InitTimer(TIMER_0, ONE_SEC);
   state = ALIGN_IR;
-  inputSignal = '0';
+  inputSignal = NONE;
 }
 
 void loop() { 
@@ -255,7 +255,7 @@ void checkEvents() {
 ******************************************************************************/
 
 bool checkIRAlign() {
-  return inputSignal == '1';
+  return inputSignal == ALIGN_IR;
 }
 
 /******************************************************************************
@@ -356,7 +356,8 @@ void handleBackContact() {
 }
 
 void handleFrontLimitSwitchesAligned() {
-  sendSignal('2');
+  // sendSignal('2');
+  sendSignal(ALIGNMENT_REACHED);
   state = WAIT4DEST;
 
   // default testing instructions when serial comm isn't being received - uncomment when serial is working
@@ -411,19 +412,19 @@ void handleRefillTimerExpired() {
 
 void handleNextGoal() { // Checks for a signal input from the flywheel controller of where to go next - sends output signal if none received  
   switch(inputSignal) {
-    case '3':
+    case NEXT_LEFT:
     state = MOVE2LEFT_1;
     break;
 
-    case '4':
+    case NEXT_MID:
     state = MOVE2MID_1;
     break;
 
-    case '5':
+    case NEXT_RIGHT:
     state = MOVE2RIGHT_1;
     break;
 
-    case '6':
+    case NEXT_REFILL:
     state = REFILL; // @Q: @TD: New state(s) needed for "return to refill" ?
     break;
 
@@ -432,18 +433,18 @@ void handleNextGoal() { // Checks for a signal input from the flywheel controlle
   }
 }
 
-void updateSignal() {
+/*void updateSignal() {
   if(Serial.available()) {
     inputSignal = Serial.read();
   } else {
-    inputSignal = '0'; // @Q: chars are single quotes - is that what I should use?
+    inputSignal = NONE; // @Q: chars are single quotes - is that what I should use?
   }
   Serial.read(); // reading new line character
 }
 
 void sendSignal(char signal) {
   Serial.write(signal);
-}
+}*/
 
 void setupPins() {
   pinMode(PIN_LIMIT_BL, INPUT);

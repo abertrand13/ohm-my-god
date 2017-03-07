@@ -13,6 +13,7 @@
 
 #include "Flywheel.h"
 #include <Timers.h>
+#include <Signals.h>
 
 
 /*---------------Module Defines-----------------------------*/
@@ -22,18 +23,6 @@
 // IR sensor 
 #define PIN_IR_ALIGN A4     // IR sensor to align in safe space @TD: Update this to actual value
 
-/*---------------Module Function Prototypes-----------------*/
-void setupPins(void);
-void checkEvents(void);
-
-// Logic Functions
-bool checkIRAlign(void);
-void handleIRAlign(void);
-
-// Signal Functions
-void updateSignal(void);
-void sendSignal(char signal);
-
 enum globalState {
 	ALIGN_IR, // Getting initial bearings with IR
 	IR_FOUND, // IR beacon has been located, and commm is being sent
@@ -42,9 +31,23 @@ enum globalState {
   WAIT
 };
 
+/*---------------Module Function Prototypes-----------------*/
+void setupPins(void);
+void checkEvents(void);
+
+// Logic Functions
+bool checkIRAlign(void);
+void handleIRAlign(void);
+
+/* Signal Functions
+// now pulled out into separate library
+void updateSignal(void);
+void sendSignal(char signal);*/
+
+
 /*---------------Module Variables---------------------------*/
 enum globalState state;
-char inputSignal;
+enum signals inputSignal;
 
 /*---------------Main Functions-----------------------------*/
 
@@ -56,15 +59,17 @@ void setup() {
 
   state = ALIGN_IR;
 
+  setFlywheelMotorSpeed(50);
+
   // SetupTimerInterrupt();
   // InitPulse(PIN_FLY_EN, 990);
   // Pulse(10);
   // Timer for testing serial comms
-  // TMRArd_InitTimer(0, 5000);
+  TMRArd_InitTimer(0, 1000);
 }
 
 void loop() {
-    if(Serial.available()) {
+    /*if(Serial.available()) {
       char motor = Serial.read();
       int x = Serial.parseInt();
       Serial.println(x);
@@ -76,11 +81,12 @@ void loop() {
       // } else {
       //   flipMotorDirection(select);
       // }
-      Serial.read(); //newline @Q: Why is this here?
+       Serial.read(); //newline @Q: Why is this here?
 
 
-  	// checkEvents();
-  }
+  }*/
+
+  checkEvents();
 
   applyMotorSettings();
 }
@@ -103,7 +109,7 @@ void checkEvents() {
   		if(TMRArd_IsTimerExpired(0)) handleIRAlign(); // Testing Code for serial comm
     	break;
   	case IR_FOUND:
-  		if(inputSignal == '2') state = SEND_INSTRUCTIONS;
+  		if(inputSignal == ALIGNMENT_REACHED) state = SEND_INSTRUCTIONS;
 		break;
 	  case SEND_INSTRUCTIONS: // @TD this should be broken into two states (decide instructions and send? Idk)
 		  handleSendInstructions();
@@ -119,11 +125,13 @@ bool checkIRAlign() {
 
 void handleIRAlign() {
   // pinMode(13, OUTPUT);
-	// digitalWrite(13, HIGH);
+	digitalWrite(LED_BUILTIN, HIGH);
 	// delay(1000);
 	// digitalWrite(13, LOW);
 	state = IR_FOUND;
-  sendSignal('1');
+  	sendSignal(FOUND_IR);
+	delay(500);
+	digitalWrite(LED_BUILTIN, LOW);
 }
 
 void handleSendInstructions() {
@@ -132,20 +140,21 @@ void handleSendInstructions() {
   state = WAIT;
 }
 
-void updateSignal() {
+/*void updateSignal() {
   if(Serial.available()) {
 		inputSignal = Serial.read();
 	} else {
-		inputSignal = '0'; // @Q: chars are single quotes - is that what I should use?
+		inputSignal = '0'; // @Q: chars are single quotes - is that what I should use? Yes.
 	}
 	Serial.read(); 
 }
 
 void sendSignal(char signal) {
 	Serial.write(signal);
-}
+}*/
 
 void setupPins() {
   pinMode(PIN_IR_ALIGN, INPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
 }
 

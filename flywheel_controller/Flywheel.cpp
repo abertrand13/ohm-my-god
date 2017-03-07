@@ -12,18 +12,13 @@ Library for motors
 
 /*---------------------------Module Variables--------------------------------*/
 
-char motorPins[PINS_PER_MOTOR] = {
-  PIN_FLY_EN, 
-  PIN_FLY_A, 
-  PIN_FLY_B
-};
-
 char motorSpeed;
 
 /*===========================Module Code=====================================*/
 
 void applyMotorSettings(void) {
     updateDutyCycle();
+	analogWrite(PIN_FEED_EN, 50);
 }
 
 char getFlywheelMotorSpeed(void) {
@@ -45,6 +40,13 @@ void setupMotorPins(void) {
 
     digitalWrite(PIN_FLY_A, LOW);
     digitalWrite(PIN_FLY_B, HIGH);
+
+	pinMode(PIN_FEED_EN, OUTPUT);
+	pinMode(PIN_FEED_A, OUTPUT);
+	pinMode(PIN_FEED_B, OUTPUT);
+
+	digitalWrite(PIN_FEED_A, LOW);
+	digitalWrite(PIN_FEED_B, HIGH);
 }
 
 void updateDutyCycle() {
