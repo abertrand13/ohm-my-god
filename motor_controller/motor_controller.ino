@@ -75,33 +75,30 @@ void handleNextGoal(void);
 void setupSensorPins(void);
 
 enum globalState {
-  ALIGN_IR,       // Get initial bearings with IR
-  ALIGN_TURN,     // Turn to face loosely right
-  ALIGN_LEFT,     // Move to hug the left wall
+  ALIGN_IR,       	// Get initial bearings with IR
+  ALIGN_TURN,     	// Turn to face loosely right
+  ALIGN_LEFT,     	// Move to hug the left wall
   ALIGN_LEFT_FRONT, // Switch to move only front wheel
-  ALIGN_LEFT_BACK, // Switch to move only back wheel
-  ALIGN_FRONT,    // Move to hug the front wall
-  WAIT4DEST,   // Waiting for 'Next Goal' signal after initial alignment @TD: @Q: do we need multiple different wait states? @A: Don't think so.
-  MOVE2LEFT_1,    // Move to face the left goal
-  SHOOT_LEFT_1,   // Shoot on the left goal
-  MOVE2MID_1,     // Move to face the middle goal
-  SHOOT_MID_1,    // Shoot on the middle goal
-  MOVE2RIGHT,     // Move to face the right goal
-  SHOOT_RIGHT,    // Shoot on the right goal
-  MOVE2MID_2,     // Move to face the middle goal @Q: what's the difference btween this and MOVE2MID_1?
-  SHOOT_MID_2,    // Shoot on the middle goal
-  MOVE2LEFT_2,    // Move to face the left goal
-  SHOOT_LEFT_2,   // Shoot on the left goal
-  MOVE2RIGHT_1,   // Move to face the right goal
-  RETURN_LEFT,    // Move left to return to safe space
-  RETURN_BACK,    // Move back to return to safe space
-  REFILL          // Pause in the safe space for refill
+  ALIGN_LEFT_BACK, 	// Switch to move only back wheel
+  ALIGN_FRONT,    	// Move to hug the front wall
+  WAIT4DEST,   		// Waiting for 'Next Goal' signal after initial alignment @TD: @Q: do we need multiple different wait states? @A: Don't think so.
+  MOVE2LEFT,    	// Move to face the left goal
+  // SHOOT_LEFT,   	// Shoot on the left goal
+  MOVE2MID,     	// Move to face the middle goal
+  // SHOOT_MID,    	// Shoot on the middle goal
+  MOVE2RIGHT,     	// Move to face the right goal
+  // SHOOT_RIGHT,    	// Shoot on the right goal
+  RETURN_LEFT,    	// Move left to return to safe space
+  RETURN_BACK,    	// Move back to return to safe space
+  REFILLING         // Pause in the safe space for refill
 };
 
 /*---------------Module Variables---------------------------*/
 enum globalState state;
 bool onTape;
 enum signal inputSignal;
+enum location location;
+enum location destination;
 
 /*---------------Main Functions-----------------------------*/
 void setup() {
@@ -119,6 +116,7 @@ void setup() {
   // setMotorSpeed(MRIGHT, 100);
   TMRArd_InitTimer(TIMER_0, ONE_SEC);
   state = ALIGN_IR;
+  location = REFILL;
 }
 
 void loop() { 
@@ -213,25 +211,23 @@ void checkEvents() {
       if(checkFrontLimitSwitchesAligned()) { handleFrontLimitSwitchesAligned(); }
       break;
 
-    case WAIT4DEST:
+   	/*--------- END ALIGNMENT STATES ---------*/ 
+	
+	case WAIT4DEST:
       handleNextGoal();
       break;
 
-    case MOVE2LEFT_1:
+    case MOVE2LEFT:
       correctLimitSwitches();
       break;
 
-    case MOVE2MID_1: 
+    case MOVE2MID: 
       break;    
-    case MOVE2RIGHT:
+    
+	case MOVE2RIGHT:
       break;
-    case MOVE2MID_2:
-      break;
-    case MOVE2LEFT_2:
-      if(checkTape()) { handleTape(); }
-      break;
-
-    case RETURN_LEFT:
+    
+	case RETURN_LEFT:
       if(checkLeftLimitSwitchesAligned()) { handleReturnedLeft(); }
       break;
 
@@ -239,7 +235,7 @@ void checkEvents() {
       if(TMRArd_IsTimerExpired(TMR_RETURN)) { handleReturnTimerExpired(); }
       break;
 
-    case REFILL:
+    case REFILLING:
       if(TMRArd_IsTimerExpired(TMR_REFILL)) { handleRefillTimerExpired(); }
       break;
   }
@@ -372,7 +368,7 @@ void correctLimitSwitches() {
 }
 
 void handleTape() {
-  switch(state) {
+  /*switch(state) {
     case MOVE2LEFT_1:
       state = SHOOT_LEFT_1;
       break;
@@ -387,7 +383,14 @@ void handleTape() {
       break;
     case MOVE2LEFT_2:
       state = SHOOT_LEFT_2;
-  }
+  }*/
+  
+  // Operating on the assumption that we never skip goals...
+  location = destination;
+  
+  // Indicate that we're ready to fire and then wait for further instructions
+  sendSignal(READY2FIRE);
+  state = WAIT4DEST;
 }
 
 void handleReturnedLeft() {
@@ -398,7 +401,8 @@ void handleReturnedLeft() {
 }
 
 void handleReturnTimerExpired() {
-  state = REFILL;
+  state = REFILLING;
+  location = REFILL;
   TMRArd_ClearTimerExpired(TMR_RETURN);
   stopDriveMotors();
   TMRArd_InitTimer(TMR_REFILL, TMR_REFILL_VAL);
@@ -406,6 +410,7 @@ void handleReturnTimerExpired() {
 
 void handleRefillTimerExpired() {
   state = ALIGN_FRONT;
+  sendSignal(REFILL_DONE);
   TMRArd_ClearTimerExpired(TMR_REFILL);
   moveForward(100);
 }
@@ -413,23 +418,35 @@ void handleRefillTimerExpired() {
 void handleNextGoal() { // Checks for a signal input from the flywheel controller of where to go next - sends output signal if none received  
   switch(inputSignal) {
     case NEXT_LEFT:
-    state = MOVE2LEFT_1;
-    break;
+   	  state = MOVE2LEFT;
+	  destination = GOAL_LEFT;
+      break;
 
     case NEXT_MID:
-    state = MOVE2MID_1;
-    break;
+      state = MOVE2MID;
+	  destination = GOAL_MID;
+      break;
 
     case NEXT_RIGHT:
-    state = MOVE2RIGHT_1;
-    break;
+      state = MOVE2RIGHT;
+	  destination = GOAL_RIGHT;
+      break;
 
     case NEXT_REFILL:
-    state = REFILL; // @Q: @TD: New state(s) needed for "return to refill" ?
-    break;
+      state = RETURN_LEFT;
+	  destination = REFILL;
+      break;
 
     default:
-    break;
+    break;	
+  }
+
+  if(location < destination) {
+	moveRight(100);
+  } else if(location > destination) {
+	moveLeft(100);
+  } else if(location == destination) {
+	// do nothing because we probably haven't gotten a new destination
   }
 }
 
