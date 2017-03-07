@@ -76,10 +76,12 @@ void setup() {
 
   state = ALIGN_IR;
 
-  setFlywheelMotorSpeed(50);
+  // setFlywheelMotorSpeed(50);
 
   // Timer for testing serial comms
-  TMRArd_InitTimer(0, 1000);
+  TMRArd_InitTimer(8, 1000);
+
+  int ballsLeft = 5;
 }
 
 void loop() {
@@ -120,7 +122,7 @@ void checkEvents() {
   switch(state) {
   	case ALIGN_IR:
   	  // if (checkIRAlign()) { handleIRAlign(); } // Actual code 
-  	  if(TMRArd_IsTimerExpired(0)) handleIRAlign(); // Testing Code for serial comm
+  	  if(TMRArd_IsTimerExpired(8)) handleIRAlign(); // Testing Code for serial comm
       break;
   	
 	case WAIT4ALIGN:

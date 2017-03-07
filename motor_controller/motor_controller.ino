@@ -323,7 +323,6 @@ void handleIRAlign() {
   // state = ALIGN_TURN; //commented for serial comms testing - uncomment when done
   
   TMRArd_InitTimer(TMR_ALIGN, TMR_ALIGN_VAL); 
-  Serial.println("YEET");
 }
 
 void handleTurnTimerExpired() {
