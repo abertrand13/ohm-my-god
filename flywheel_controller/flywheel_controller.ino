@@ -47,7 +47,7 @@ void sendSignal(char signal);*/
 
 /*---------------Module Variables---------------------------*/
 enum globalState state;
-enum signals inputSignal;
+enum signal inputSignal;
 
 /*---------------Main Functions-----------------------------*/
 
@@ -101,7 +101,7 @@ void loop() {
 ******************************************************************************/
 
 void checkEvents() {
-  updateSignal();
+  inputSignal = receiveSignal();
 
   switch(state) {
   	case ALIGN_IR:
@@ -109,7 +109,7 @@ void checkEvents() {
   		if(TMRArd_IsTimerExpired(0)) handleIRAlign(); // Testing Code for serial comm
     	break;
   	case IR_FOUND:
-  		if(inputSignal == ALIGNMENT_REACHED) state = SEND_INSTRUCTIONS;
+  		if(inputSignal == ALIGNED) state = SEND_INSTRUCTIONS;
 		break;
 	  case SEND_INSTRUCTIONS: // @TD this should be broken into two states (decide instructions and send? Idk)
 		  handleSendInstructions();

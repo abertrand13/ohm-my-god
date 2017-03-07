@@ -12,6 +12,7 @@
 /*---------------Includes-----------------------------------*/
 
 #include <Timers.h>
+#include <Signals.h>
 #include "Motors.h"
 
 /*---------------Module Defines-----------------------------*/
@@ -100,7 +101,7 @@ enum globalState {
 /*---------------Module Variables---------------------------*/
 enum globalState state;
 bool onTape;
-char inputSignal;
+enum signal inputSignal;
 
 /*---------------Main Functions-----------------------------*/
 void setup() {
@@ -118,7 +119,6 @@ void setup() {
   // setMotorSpeed(MRIGHT, 100);
   TMRArd_InitTimer(TIMER_0, ONE_SEC);
   state = ALIGN_IR;
-  inputSignal = NONE;
 }
 
 void loop() { 
@@ -174,7 +174,7 @@ void loop() {
 ******************************************************************************/
 
 void checkEvents() {
-  updateSignal();
+  inputSignal = receiveSignal();
 
   switch(state) {
     case ALIGN_IR:
@@ -357,7 +357,7 @@ void handleBackContact() {
 
 void handleFrontLimitSwitchesAligned() {
   // sendSignal('2');
-  sendSignal(ALIGNMENT_REACHED);
+  sendSignal(ALIGNED);
   state = WAIT4DEST;
 
   // default testing instructions when serial comm isn't being received - uncomment when serial is working
