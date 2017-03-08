@@ -296,7 +296,7 @@ bool checkTape() {
 /*---------------Event Handler Functions--------------------*/
 
 void handleIRAlign() {
-  state = ALIGN_TURN; //commented for serial comms testing - uncomment when done
+  state = ALIGN_TURN; 
   TMRArd_InitTimer(TMR_ALIGN, TMR_ALIGN_VAL); 
   turnCW(100);
 }
@@ -330,17 +330,9 @@ void handleBackContact() {
 }
 
 void handleFrontLimitSwitchesAligned() {
-  // sendSignal('2');
   stopDriveMotors();
   sendSignal(ALIGNED);
   state = WAIT4DEST;
-
-  
-
-  // default testing instructions when serial comm isn't being received - uncomment when serial is working
-  // state = MOVE2LEFT_1; 
-  // stopDriveMotors();
-  // moveRight(100);
 }
 
 void correctLimitSwitches() {
@@ -349,22 +341,6 @@ void correctLimitSwitches() {
 }
 
 void handleTape() {
-  /*switch(state) {
-    case MOVE2LEFT_1:
-      state = SHOOT_LEFT_1;
-      break;
-    case MOVE2MID_1:
-      state = SHOOT_MID_1;
-      break;
-    case MOVE2RIGHT:
-      state = SHOOT_RIGHT;
-      break;
-    case MOVE2MID_2:
-      state = SHOOT_MID_2;
-      break;
-    case MOVE2LEFT_2:
-      state = SHOOT_LEFT_2;
-  }*/
   
   // Operating on the assumption that we never skip goals...
   location = destination;
@@ -397,7 +373,7 @@ void handleRefillTimerExpired() {
   moveForward(100);
 }
 
-void handleNextGoal() { // Checks for a signal input from the flywheel controller of where to go next - sends output signal if none received  
+void handleNextGoal() { 
   switch(inputSignal) {
     case NEXT_LEFT:
    	  state = MOVE2LEFT;

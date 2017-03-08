@@ -20,6 +20,11 @@
 
 // Pinout
 
+// Debugging Pins
+#define YELLOW A0
+#define RED A1
+#define GREEN A2
+
 // IR sensor 
 #define PIN_IR_ALIGN A4     // IR sensor to align in safe space @TD: Update this to actual value
 
@@ -262,5 +267,9 @@ void sendSignal(char signal) {
 void setupPins() {
   pinMode(PIN_IR_ALIGN, INPUT);
   pinMode(LED_BUILTIN, OUTPUT);
+
+  pinMode(YELLOW, OUTPUT);
+  pinMode(RED, OUTPUT);
+  pinMode(GREEN, OUTPUT);
 }
 
