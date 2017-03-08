@@ -86,7 +86,7 @@ void setup() {
   // Timer for testing serial comms
   TMRArd_InitTimer(8, 1000);
 
-  int ballsLeft = 5;
+  ballsLeft = 5;
   location = REFILL;
 }
 
