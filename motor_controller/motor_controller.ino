@@ -413,6 +413,7 @@ void handleRefillTimerExpired() {
 }
 
 void handleNextGoal() { // Checks for a signal input from the flywheel controller of where to go next - sends output signal if none received  
+  stopDriveMotors(); 
   switch(inputSignal) {
     case NEXT_LEFT:
    	  state = MOVE2LEFT;

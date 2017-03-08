@@ -18,7 +18,7 @@ char motorSpeed;
 
 void applyMotorSettings(void) {
     updateDutyCycle();
-	analogWrite(PIN_FEED_EN, 50);
+	// analogWrite(PIN_FEED_EN, 50);
 }
 
 char getFlywheelMotorSpeed(void) {

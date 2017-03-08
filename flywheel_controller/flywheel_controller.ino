@@ -108,8 +108,6 @@ void loop() {
 
   }*/
 
-  Serial.println(analogRead(PIN_IR_ALIGN));
-
   checkEvents();
 
   applyMotorSettings();
