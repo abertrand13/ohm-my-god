@@ -17,7 +17,7 @@
 
 /*---------------Module Defines-----------------------------*/
 
-#define DEBUG 0
+#define DEBUG 1
 
 // Pinout
 
@@ -41,7 +41,7 @@
 #define TIMER_0 0
 #define ONE_SEC 1000
 
-#define TAPE_THRESHOLD
+#define TAPE_THRESHOLD 500
 
 /*---------------Module Function Prototypes-----------------*/
 void setupPins(void);
@@ -90,6 +90,7 @@ enum globalState {
 
 /*---------------Module Variables---------------------------*/
 enum globalState state;
+bool tape;
 bool onTape;
 enum signal inputSignal;
 enum Location location;
@@ -107,13 +108,14 @@ void setup() {
     digitalWrite(A5, HIGH);
     delay(500);
     digitalWrite(A5, LOW);
-    TMRArd_InitTimer(TIMER_0, ONE_SEC);
+    // TMRArd_InitTimer(TIMER_0, ONE_SEC);
   }
 
   // Initial var setup
   state = ALIGN_IR;
   turnCCW(100);
   location = REFILL;
+  destination = REFILL;
   onTape = false;
 }
 
@@ -216,15 +218,21 @@ void checkEvents() {
 
     case MOVE2LEFT:
       correctLimitSwitches();
+      //if(checkTape()) {  }
       break;
 
-    case MOVE2MID: 
+    case MOVE2MID:
+      correctLimitSwitches();
+      if(checkTape()) moveLeft(100);
       break;    
     
 	case MOVE2RIGHT:
+      correctLimitSwitches();
+      if(checkTape()) handleTape();
       break;
     
 	case RETURN_LEFT:
+      correctLimitSwitches();
       if(checkLeftLimitSwitchesAligned()) { handleReturnedLeft(); }
       break;
 
@@ -303,14 +311,15 @@ bool checkFrontLimitSwitchesAligned() {
 ******************************************************************************/
 
 bool checkTape() {
-  bool tape = analogRead(PIN_TAPE) > TAPE_THRESHOLD
+  /*tape = analogRead(PIN_TAPE) > TAPE_THRESHOLD;
   if(tape && !onTape) {
     onTape = true;
     return true;
   } else {
     onTape = tape;
     return false;
-  }
+  }*/
+  moveLeft(100);
 }
 
 
@@ -350,6 +359,7 @@ void handleBackContact() {
 
 void handleFrontLimitSwitchesAligned() {
   // sendSignal('2');
+  stopDriveMotors();
   sendSignal(ALIGNED);
   state = WAIT4DEST;
 
@@ -386,6 +396,7 @@ void handleTape() {
   location = destination;
   
   // Indicate that we're ready to fire and then wait for further instructions
+
   stopDriveMotors();
   sendSignal(READY2FIRE);
   state = WAIT4DEST;
@@ -414,11 +425,10 @@ void handleRefillTimerExpired() {
 }
 
 void handleNextGoal() { // Checks for a signal input from the flywheel controller of where to go next - sends output signal if none received  
-  stopDriveMotors(); 
   switch(inputSignal) {
     case NEXT_LEFT:
    	  state = MOVE2LEFT;
-	  destination = GOAL_LEFT;
+	    destination = GOAL_LEFT;
       break;
 
     case NEXT_MID:
@@ -442,8 +452,6 @@ void handleNextGoal() { // Checks for a signal input from the flywheel controlle
 
   int loc = location;
   int dest = destination;
-  Serial.println(loc);
-  Serial.println(dest);
 
   if(loc < dest) {
 	moveRight(100);
