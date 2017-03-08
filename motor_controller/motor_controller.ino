@@ -27,12 +27,8 @@
 #define PIN_LIMIT_LF A2     // Left limit switch on front side
 #define PIN_LIMIT_RF A3     // Right limit switch on front side
 
-// IR sensor @Q @TD I think this should this be removed from this 
-// file bc sensing is happening in other arduino
-#define PIN_IR_ALIGN A4     // IR sensor to align in safe space
-
 // Tape sensor
-#define PIN_TAPE A5         // Tape sensor
+#define PIN_TAPE A4         // Tape sensor
 
 // Timers
 #define TMR_ALIGN 1         // Timer to rotate away from IR sensor
@@ -44,6 +40,8 @@
 
 #define TIMER_0 0
 #define ONE_SEC 1000
+
+#define TAPE_THRESHOLD
 
 /*---------------Module Function Prototypes-----------------*/
 void setupPins(void);
@@ -305,7 +303,7 @@ bool checkFrontLimitSwitchesAligned() {
 ******************************************************************************/
 
 bool checkTape() {
-  bool tape = !digitalRead(PIN_TAPE);
+  bool tape = analogRead(PIN_TAPE) > TAPE_THRESHOLD
   if(tape && !onTape) {
     onTape = true;
     return true;
@@ -462,8 +460,6 @@ void setupPins() {
   pinMode(PIN_LIMIT_LF, INPUT);
   pinMode(PIN_LIMIT_RF, INPUT);
   pinMode(PIN_TAPE,     INPUT);
-
-  pinMode(PIN_IR_ALIGN, INPUT);
 
   // TX/RX 
   pinMode(0, INPUT);
