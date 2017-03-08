@@ -42,6 +42,8 @@
 #define TMR_DETECTTAPE_VAL 500
 #define CHK 5
 #define CHK_VAL 1500
+#define CHK2 6
+#define CHK2_VAL 550
 
 #define TIMER_0 0
 #define ONE_SEC 1000
@@ -80,6 +82,8 @@ void setHigh(void);
 void setLow(void);
 void testTape(void);
 void checkOffHack(void);
+void handchk(void);
+void handchk2(void);
 
 enum globalState {
   ALIGN_IR,       	// Get initial bearings with IR
@@ -99,6 +103,7 @@ enum globalState {
   RETURN_BACK,    	// Move back to return to safe space
   REFILLING,         // Pause in the safe space for refill
   CONTROL,
+  CHECKOFF2,
   ALIGN_LEFT_CHECKOFF
 };
 
@@ -228,16 +233,10 @@ void checkEvents() {
     
 	case RETURN_LEFT:
       //checkoff hack
-      state = CONTROL;  
-      stopDriveMotors();
-      moveBack(100);
-      moveRight(100);
-      TMRArd_InitTimer(CHK, CHK_VAL);
-      break;
-      
+      handchk();
       // correctLimitSwitches();
       // if(checkLeftLimitSwitchesAligned()) { handleReturnedLeft(); }
-      // break;
+      break;
 
     case RETURN_BACK:
       if(TMRArd_IsTimerExpired(TMR_RETURN)) { handleReturnTimerExpired(); }
@@ -251,13 +250,13 @@ void checkEvents() {
       checkOffHack();
       break;
 
+    case CHECKOFF2:
+      handchk2();
+      break;
+
     case ALIGN_LEFT_CHECKOFF:
-      bool frontContact = checkFrontLeftLimitSwitch();
-      bool backContact = checkBackLeftLimitSwitch();
       if(checkLeftLimitSwitchesAligned()) { 
         stopDriveMotors(); 
-      } else if(frontContact) { handleFrontContact(); 
-      } else if(backContact) { handleBackContact(); 
       }
       break; // braces for scoping
   }
@@ -444,8 +443,7 @@ void handleNextGoal() {
 
     case NEXT_REFILL:
       
-      setHigh();
-     //  state = RETURN_LEFT;
+      state = RETURN_LEFT;
 	    // destination = REFILL;
      //  setDestination();
       break;
@@ -496,19 +494,30 @@ void testTape(void) {
 }
 
 void checkOffHack(void) {
+    setHigh();
+
   if(TMRArd_IsTimerExpired(CHK)) {
     TMRArd_ClearTimerExpired(CHK);
     stopDriveMotors();
-    TMRArd_InitTimer(TMR_ALIGN, TMR_ALIGN_VAL);
+    TMRArd_InitTimer(CHK2, CHK2_VAL);
     turnCCW(100);
+    state = CHECKOFF2;
   }
 
-  if(TMRArd_IsTimerExpired(TMR_ALIGN)) {
-    TMRArd_ClearTimerExpired(TMR_ALIGN);
+}
+
+void handchk2(void) {
+  if(TMRArd_IsTimerExpired(CHK2)) {
+    TMRArd_ClearTimerExpired(CHK2);
     stopDriveMotors();
     state = ALIGN_LEFT_CHECKOFF;
     moveLeft(100);
-
   }
+}
 
+void handchk(void) {
+      state = CONTROL;  
+      stopDriveMotors();
+      moveBack(100);
+      TMRArd_InitTimer(CHK, CHK_VAL);
 }
