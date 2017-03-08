@@ -67,7 +67,12 @@ void handleReturnedLeft(void);
 void handleReturnTimerExpired(void);
 void handleRefillTimerExpired(void);
 void handleNextGoal(void);
+void setDestination(void);
 void setupSensorPins(void);
+
+// Debugging
+void setHigh(void);
+void setLow(void);
 
 enum globalState {
   ALIGN_IR,       	// Get initial bearings with IR
@@ -115,48 +120,13 @@ void setup() {
   state = ALIGN_IR;
   turnCCW(100);
   location = REFILL;
-  destination = REFILL;
+  //destination = REFILL;
   onTape = false;
 }
 
 void loop() { 
-  // control routine (temporary)
-  // to operate, just enter commands in the serial port
-  // eg:
-  // l127 sets left motor to full forward speed
-  // l-127 sets left motor to full reverse speed
-  // f127 set front motor to full forward speed
-  // b-128 reverses the back motor, whether it's going forward or backward
-  // if(Serial.available()) {
-  //   char motor = Serial.read();
-  //   enum motorID select;
-  //   if(motor == 'l') {
-  //     select = MLEFT;
-  //   } else if(motor == 'r'){
-  //     select = MRIGHT;
-  //   } else if(motor == 'b'){
-  //     select = MBACK;
-  //   } else if(motor == 'f'){
-  //     select = MFRONT;
-  //   }
-  //   int x = Serial.parseInt();
-  //   Serial.println(x);
-
-  //   setMotorSpeed(select, char(x));
-
-  //   // if(x != -128) {
-  //   //   setMotorSpeed(select, char(x));
-  //   // } else {
-  //   //   flipMotorDirection(select);
-  //   // }
-  //   Serial.read(); //newline @Q: Why is this here?
-  // }
-  
   checkEvents();
   applyMotorSettings();
-
-  // For Debugging * NOTE will interrupt Serial Comms
-  // if(TMRArd_IsTimerExpired(TIMER_0)) printStates();    
 }
 
 /*---------------Event Detection Functions------------------*/
@@ -218,7 +188,7 @@ void checkEvents() {
 
     case MOVE2LEFT:
       correctLimitSwitches();
-      //if(checkTape()) {  }
+      if(checkTape()) { handleTape(); }
       break;
 
     case MOVE2MID:
@@ -311,15 +281,15 @@ bool checkFrontLimitSwitchesAligned() {
 ******************************************************************************/
 
 bool checkTape() {
-  /*tape = analogRead(PIN_TAPE) > TAPE_THRESHOLD;
+  tape = analogRead(PIN_TAPE) > TAPE_THRESHOLD;
   if(tape && !onTape) {
     onTape = true;
     return true;
   } else {
     onTape = tape;
     return false;
-  }*/
-  moveLeft(100);
+  }
+  // moveLeft(100);
 }
 
 
@@ -348,13 +318,15 @@ void handleLeftLimitSwitchesAligned() {
 void handleFrontContact() {
   state = ALIGN_LEFT_BACK;
   stopDriveMotors();
-  setMotorSpeed(MBACK, -50);
+  setMotorSpeed(MBACK, -100);
+  setMotorSpeed(MLEFT, 75);
 }
 
 void handleBackContact() {
   state = ALIGN_LEFT_FRONT;
   stopDriveMotors();
-  setMotorSpeed(MFRONT, -50);
+  setMotorSpeed(MFRONT, -100);
+  setMotorSpeed(MLEFT, -75);
 }
 
 void handleFrontLimitSwitchesAligned() {
@@ -362,6 +334,8 @@ void handleFrontLimitSwitchesAligned() {
   stopDriveMotors();
   sendSignal(ALIGNED);
   state = WAIT4DEST;
+
+  
 
   // default testing instructions when serial comm isn't being received - uncomment when serial is working
   // state = MOVE2LEFT_1; 
@@ -396,7 +370,6 @@ void handleTape() {
   location = destination;
   
   // Indicate that we're ready to fire and then wait for further instructions
-
   stopDriveMotors();
   sendSignal(READY2FIRE);
   state = WAIT4DEST;
@@ -429,36 +402,43 @@ void handleNextGoal() { // Checks for a signal input from the flywheel controlle
     case NEXT_LEFT:
    	  state = MOVE2LEFT;
 	    destination = GOAL_LEFT;
+      setDestination();
       break;
 
     case NEXT_MID:
       state = MOVE2MID;
-	  destination = GOAL_MID;
+	    destination = GOAL_MID;
+      setDestination();
       break;
 
     case NEXT_RIGHT:
       state = MOVE2RIGHT;
-	  destination = GOAL_RIGHT;
+	    destination = GOAL_RIGHT;
+      setDestination();
       break;
 
     case NEXT_REFILL:
+      setHigh();
       state = RETURN_LEFT;
-	  destination = REFILL;
+	    destination = REFILL;
+      setDestination();
       break;
 
     default:
     break;	
   }
+}
 
+void setDestination(void) {
   int loc = location;
   int dest = destination;
 
   if(loc < dest) {
-	moveRight(100);
+  moveRight(100);
   } else if(loc > dest) {
-	moveLeft(100);
+  moveLeft(100);
   } else if(loc == dest) {
-	// do nothing because we probably haven't gotten a new destination
+  // do nothing because we probably haven't gotten a new destination
   }
 }
 
@@ -472,4 +452,12 @@ void setupPins() {
   // TX/RX 
   pinMode(0, INPUT);
   pinMode(1, OUTPUT);
+}
+
+void setHigh(void) {
+    digitalWrite(A5, HIGH);
+}
+
+void setLow(void) {
+    digitalWrite(A5, LOW);
 }
