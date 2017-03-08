@@ -11,3 +11,8 @@ Sunday 5/17 - 3:15PM
 	* Linear regulator on motor controller arduino fried for some reason (even though upper arduino was powered via same rails and is fine). TA blamed terrible chinese components. Arduino still works if plugged in via pc
 	** We should change the system so that arduino's are powered from 5V rail - maybe pull from h-bridges
 	* Redeemed myself after terrible work session by implementing PWM in the upper arduino - using the Pulse arduino library, but some code for duty cycles is also included and can be switched if necessary
+
+serialEvent() // native function triggered on serial event
+while(Serial.Available()) 
+	string signal = Serial.readStringUntil('\n');	
+	signal.trim();

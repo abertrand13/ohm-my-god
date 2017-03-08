@@ -17,6 +17,8 @@
 
 /*---------------Module Defines-----------------------------*/
 
+#define DEBUG 0
+
 // Pinout
 
 // Limit Switches
@@ -53,11 +55,6 @@ bool checkFrontLeftLimitSwitch(void);
 bool checkLeftLimitSwitchesAligned(void);
 bool checkFrontLimitSwitchesAligned(void);
 bool checkTape(void);
-
-/* Signal Functions
-// now pulled out into separate library
-void updateSignal(void);
-void sendSignal(char signal); */ 
 
 // Event handlers
 void handleIRAlign(void);
@@ -106,15 +103,15 @@ void setup() {
   setupPins();
   setupMotorPins();
   
-  pinMode(A5, OUTPUT);
-  delay(1000);
-  digitalWrite(A5, HIGH);
-  delay(500);
-  digitalWrite(A5, LOW);
+  if(DEBUG) {
+    pinMode(A5, OUTPUT);
+    delay(1000);
+    digitalWrite(A5, HIGH);
+    delay(500);
+    digitalWrite(A5, LOW);
+    TMRArd_InitTimer(TIMER_0, ONE_SEC);
+  }
 
-  // setMotorSpeed(MLEFT, 100);
-  // setMotorSpeed(MRIGHT, 100);
-  TMRArd_InitTimer(TIMER_0, ONE_SEC);
   state = ALIGN_IR;
   turnCCW(100);
   location = REFILL;
@@ -154,7 +151,6 @@ void loop() {
   // }
   
   checkEvents();
-
   applyMotorSettings();
 
   // For Debugging * NOTE will interrupt Serial Comms
@@ -450,19 +446,6 @@ void handleNextGoal() { // Checks for a signal input from the flywheel controlle
 	// do nothing because we probably haven't gotten a new destination
   }
 }
-
-/*void updateSignal() {
-  if(Serial.available()) {
-    inputSignal = Serial.read();
-  } else {
-    inputSignal = NONE; // @Q: chars are single quotes - is that what I should use?
-  }
-  Serial.read(); // reading new line character
-}
-
-void sendSignal(char signal) {
-  Serial.write(signal);
-}*/
 
 void setupPins() {
   pinMode(PIN_LIMIT_BL, INPUT);

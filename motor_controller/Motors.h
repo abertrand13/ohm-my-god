@@ -49,8 +49,8 @@ void moveLeft(char val);
 void moveRight(char val);
 void moveBack(char val);
 void moveForward(char val);
-void turnCW(char val);
-void turnCCW(char val);
+void turnCW(char val); // Turn Clockwise
+void turnCCW(char val); // Turn Counter-Clockwise
 void stopDriveMotors(void);
 void flipMotorDirection(int motor);
 void setupMotorPins(void);
