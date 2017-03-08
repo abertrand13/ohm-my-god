@@ -33,7 +33,7 @@
 
 // Firing
 #define TMR_FIRE 7			// Timer to control firing feed
-#define FIRE_CONSTANT 500	// Time to feed per ball
+#define FIRE_CONSTANT 1000	// Time to feed per ball
 
 enum globalState {
 	ALIGN_IR, 			// Getting initial bearings with IR
@@ -81,7 +81,7 @@ void setup() {
 
   state = ALIGN_IR;
 
-  // setFlywheelMotorSpeed(50);
+  setFlywheelMotorSpeed(50);
 
   // Timer for testing serial comms
   TMRArd_InitTimer(8, 1000);
@@ -201,8 +201,8 @@ void findAndSendDestination() {
 	  case GOAL_RIGHT:
 		destination = REFILL;
 		sendSignal(NEXT_REFILL);
-        break;
-    }
+        break;	  
+	}
   }
 
   state = MOVE2DEST;
@@ -221,13 +221,14 @@ void fireAway() {
 	  ballsLeft -= ballsToFire;
 	  TMRArd_ClearTimerExpired(TMR_FIRE);
 	  digitalWrite(LED_BUILTIN, LOW);
+	  setFeedMotorSpeed(0);
 	  break;
 	
 	case TMRArd_ERR:
 	  ballsToFire = 3;
 	  // this will have to be more involved later, but...
 	  // start motors
-	  setFeedMotorSpeed(50);
+	  setFeedMotorSpeed(100);
 	  digitalWrite(LED_BUILTIN, HIGH);
 	  TMRArd_InitTimer(TMR_FIRE, ballsToFire * FIRE_CONSTANT);
 	  break;
