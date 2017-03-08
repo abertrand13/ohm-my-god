@@ -69,8 +69,8 @@ enum globalState state;
 enum signal inputSignal;
 int ballsLeft;
 int ballsToFire;
-enum location location;
-enum location destination;
+enum Location location;
+enum Location destination;
 
 /*---------------Main Functions-----------------------------*/
 
@@ -87,6 +87,7 @@ void setup() {
   TMRArd_InitTimer(8, 1000);
 
   int ballsLeft = 5;
+  location = REFILL;
 }
 
 void loop() {
