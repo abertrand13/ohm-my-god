@@ -54,8 +54,8 @@ void setupMotorPins(void) {
 	pinMode(PIN_FEED_A, OUTPUT);
 	pinMode(PIN_FEED_B, OUTPUT);
 
-	digitalWrite(PIN_FEED_A, LOW);
-	digitalWrite(PIN_FEED_B, HIGH);
+	digitalWrite(PIN_FEED_A, HIGH);
+	digitalWrite(PIN_FEED_B, LOW);
 }
 
 void updateDutyCycle() {
