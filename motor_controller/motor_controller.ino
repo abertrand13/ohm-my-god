@@ -90,7 +90,8 @@ enum globalState {
   // SHOOT_RIGHT,    	// Shoot on the right goal
   RETURN_LEFT,    	// Move left to return to safe space
   RETURN_BACK,    	// Move back to return to safe space
-  REFILLING         // Pause in the safe space for refill
+  REFILLING,        // Pause in the safe space for refill
+  CONTROL
 };
 
 /*---------------Module Variables---------------------------*/
@@ -100,6 +101,7 @@ bool onTape;
 enum signal inputSignal;
 enum Location location;
 enum Location destination;
+int round;
 
 /*---------------Main Functions-----------------------------*/
 void setup() {
@@ -122,6 +124,8 @@ void setup() {
   location = REFILL;
   //destination = REFILL;
   onTape = false;
+
+  round = 1;
 }
 
 void loop() { 
@@ -193,7 +197,7 @@ void checkEvents() {
 
     case MOVE2MID:
       correctLimitSwitches();
-      if(checkTape()) moveLeft(100);
+      if(checkTape()) { handleTape(); }
       break;    
     
 	case MOVE2RIGHT:
@@ -213,6 +217,17 @@ void checkEvents() {
     case REFILLING:
       if(TMRArd_IsTimerExpired(TMR_REFILL)) { handleRefillTimerExpired(); }
       break;
+
+	case CONTROL:
+	  if(TMRArd_IsTimerExpired(9)) {
+	    stopDriveMotors();
+		moveLeft(100);
+		TMRArd_ClearTimerExpired(9);
+	  }
+	  if(checkLeftLimitSwitchesAligned()) {
+        stopDriveMotors();
+	  }
+	  break;
   }
 }
 
@@ -398,10 +413,17 @@ void handleNextGoal() {
       state = RETURN_LEFT;
 	    destination = REFILL;
       setDestination();
+	  round++;
       break;
 
     default:
     break;	
+  }
+  
+  if(round == 3) {
+	state = CONTROL;
+	TMRArd_SetTimer(9, 500);
+	turnCCW(100);
   }
 }
 

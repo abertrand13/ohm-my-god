@@ -77,6 +77,8 @@ int ballsToFire;
 enum Location location;
 enum Location destination;
 
+int round;
+
 /*---------------Main Functions-----------------------------*/
 
 void setup() {
@@ -93,6 +95,8 @@ void setup() {
 
   ballsLeft = 5;
   location = REFILL;
+
+  round = 1;
 }
 
 void loop() {
@@ -199,17 +203,17 @@ void findAndSendDestination() {
 		break;
       
 	  case GOAL_MID:
-		destination = GOAL_RIGHT;
-		sendSignal(NEXT_RIGHT);
+		destination = REFILL
+		sendSignal(NEXT_REFILL);
 		break;
 	
-	  case GOAL_RIGHT:
+	  /*case GOAL_RIGHT:
 		destination = REFILL;
 		sendSignal(NEXT_REFILL);
-        break;	  
+        break;*/
 	}
   }
-
+  
   state = MOVE2DEST;
 }
 
@@ -250,19 +254,6 @@ void handleDoneRefilling() {
     state = WAIT4ALIGN;
   }
 }
-
-/*void updateSignal() {
-  if(Serial.available()) {
-		inputSignal = Serial.read();
-	} else {
-		inputSignal = '0'; // @Q: chars are single quotes - is that what I should use? Yes.
-	}
-	Serial.read(); 
-}
-
-void sendSignal(char signal) {
-	Serial.write(signal);
-}*/
 
 void setupPins() {
   pinMode(PIN_IR_ALIGN, INPUT);
