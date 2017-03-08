@@ -17,7 +17,7 @@
 
 /*---------------Module Defines-----------------------------*/
 
-#define DEBUG 0
+#define DEBUG 1
 #define CHECKOFF 1
 
 // Pinout
@@ -40,6 +40,8 @@
 #define TMR_REFILL_VAL 4000 // Time to run refill timer for
 #define TMR_DETECTTAPE 4   // Timer to wait to track tape
 #define TMR_DETECTTAPE_VAL 500
+#define CHK 5
+#define CHK_VAL 1500
 
 #define TIMER_0 0
 #define ONE_SEC 1000
@@ -77,6 +79,7 @@ void setupSensorPins(void);
 void setHigh(void);
 void setLow(void);
 void testTape(void);
+void checkOffHack(void);
 
 enum globalState {
   ALIGN_IR,       	// Get initial bearings with IR
@@ -94,7 +97,9 @@ enum globalState {
   // SHOOT_RIGHT,    	// Shoot on the right goal
   RETURN_LEFT,    	// Move left to return to safe space
   RETURN_BACK,    	// Move back to return to safe space
-  REFILLING         // Pause in the safe space for refill
+  REFILLING,         // Pause in the safe space for refill
+  CONTROL,
+  ALIGN_LEFT_CHECKOFF
 };
 
 /*---------------Module Variables---------------------------*/
@@ -120,7 +125,7 @@ void setup() {
     digitalWrite(A5, LOW);
     TMRArd_InitTimer(TIMER_0, 100);
   }
-
+  delay(6000); //Delay for flywheel to spin up
   // Initial var setup
   state = ALIGN_IR;
   turnCCW(100);
@@ -136,7 +141,6 @@ void setup() {
 }
 
 void loop() { 
-  delay(2000); //Delay for flywheel to spin up
   checkEvents();
   applyMotorSettings();
   // testTape();
@@ -159,7 +163,6 @@ void checkEvents() {
   switch(state) {
     case ALIGN_IR:
       if (checkIRAlign()) {
-        setHigh();
         handleIRAlign();
       }
       break;
@@ -224,9 +227,17 @@ void checkEvents() {
       break;
     
 	case RETURN_LEFT:
-      correctLimitSwitches();
-      if(checkLeftLimitSwitchesAligned()) { handleReturnedLeft(); }
+      //checkoff hack
+      state = CONTROL;  
+      stopDriveMotors();
+      moveBack(100);
+      moveRight(100);
+      TMRArd_InitTimer(CHK, CHK_VAL);
       break;
+      
+      // correctLimitSwitches();
+      // if(checkLeftLimitSwitchesAligned()) { handleReturnedLeft(); }
+      // break;
 
     case RETURN_BACK:
       if(TMRArd_IsTimerExpired(TMR_RETURN)) { handleReturnTimerExpired(); }
@@ -235,7 +246,22 @@ void checkEvents() {
     case REFILLING:
       if(TMRArd_IsTimerExpired(TMR_REFILL)) { handleRefillTimerExpired(); }
       break;
+
+    case CONTROL:
+      checkOffHack();
+      break;
+
+    case ALIGN_LEFT_CHECKOFF:
+      bool frontContact = checkFrontLeftLimitSwitch();
+      bool backContact = checkBackLeftLimitSwitch();
+      if(checkLeftLimitSwitchesAligned()) { 
+        stopDriveMotors(); 
+      } else if(frontContact) { handleFrontContact(); 
+      } else if(backContact) { handleBackContact(); 
+      }
+      break; // braces for scoping
   }
+    
 }
 
 /******************************************************************************
@@ -417,9 +443,11 @@ void handleNextGoal() {
       break;
 
     case NEXT_REFILL:
-      state = RETURN_LEFT;
-	    destination = REFILL;
-      setDestination();
+      
+      setHigh();
+     //  state = RETURN_LEFT;
+	    // destination = REFILL;
+     //  setDestination();
       break;
 
     default:
@@ -465,4 +493,22 @@ void testTape(void) {
     Serial.println(analogRead(A4));
     TMRArd_InitTimer(0, 10);
   }
+}
+
+void checkOffHack(void) {
+  if(TMRArd_IsTimerExpired(CHK)) {
+    TMRArd_ClearTimerExpired(CHK);
+    stopDriveMotors();
+    TMRArd_InitTimer(TMR_ALIGN, TMR_ALIGN_VAL);
+    turnCCW(100);
+  }
+
+  if(TMRArd_IsTimerExpired(TMR_ALIGN)) {
+    TMRArd_ClearTimerExpired(TMR_ALIGN);
+    stopDriveMotors();
+    state = ALIGN_LEFT_CHECKOFF;
+    moveLeft(100);
+
+  }
+
 }
