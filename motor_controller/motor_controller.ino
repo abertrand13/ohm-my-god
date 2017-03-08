@@ -94,8 +94,8 @@ enum globalState {
 enum globalState state;
 bool onTape;
 enum signal inputSignal;
-enum location location;
-enum location destination;
+enum Location location;
+enum Location destination;
 
 /*---------------Main Functions-----------------------------*/
 void setup() {
@@ -112,9 +112,11 @@ void setup() {
     TMRArd_InitTimer(TIMER_0, ONE_SEC);
   }
 
+  // Initial var setup
   state = ALIGN_IR;
   turnCCW(100);
   location = REFILL;
+  onTape = false;
 }
 
 void loop() { 
@@ -303,7 +305,7 @@ bool checkFrontLimitSwitchesAligned() {
 ******************************************************************************/
 
 bool checkTape() {
-  bool tape = digitalRead(PIN_TAPE);
+  bool tape = !digitalRead(PIN_TAPE);
   if(tape && !onTape) {
     onTape = true;
     return true;
@@ -386,6 +388,7 @@ void handleTape() {
   location = destination;
   
   // Indicate that we're ready to fire and then wait for further instructions
+  stopDriveMotors();
   sendSignal(READY2FIRE);
   state = WAIT4DEST;
 }
@@ -439,11 +442,16 @@ void handleNextGoal() { // Checks for a signal input from the flywheel controlle
     break;	
   }
 
-  if(location < destination) {
+  int loc = location;
+  int dest = destination;
+  Serial.println(loc);
+  Serial.println(dest);
+
+  if(loc < dest) {
 	moveRight(100);
-  } else if(location > destination) {
+  } else if(loc > dest) {
 	moveLeft(100);
-  } else if(location == destination) {
+  } else if(loc == dest) {
 	// do nothing because we probably haven't gotten a new destination
   }
 }
