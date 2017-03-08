@@ -25,6 +25,11 @@
 
 // Constants
 #define BALL_CAPACITY 9
+#define IR_ON_LOW 900
+#define IR_50_HIGH 600
+#define IR_50_LOW 400
+#define IR_25_HIGH 300
+#define IR_25_LOW 150
 
 // Firing
 #define TMR_FIRE 7			// Timer to control firing feed
@@ -32,7 +37,7 @@
 
 enum globalState {
 	ALIGN_IR, 			// Getting initial bearings with IR
-	WAIT4ALIGN, 		// IR beacon has been located, and bot is finding wallt
+	WAIT4ALIGN, 		// IR beacon has been located, and bot is finding wall
 	FIND_DEST,			// Logic to find next destination
 	MOVE2DEST,			// Moving to next destination
 	FIRING,				// IMMA FIRIN MAH LAZERRRR
@@ -101,6 +106,8 @@ void loop() {
 
 
   }*/
+
+  Serial.println(analogRead(PIN_IR_ALIGN));
 
   checkEvents();
 

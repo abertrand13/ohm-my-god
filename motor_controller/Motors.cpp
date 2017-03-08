@@ -70,6 +70,22 @@ void moveForward(char val) {
   motorSpeeds[MRIGHT] = speedVal;
 }
 
+void turnCW(char val) {
+  char speedVal = constrain(val, -127, 127);
+  motorSpeeds[MLEFT] = speedVal;
+  motorSpeeds[MFRONT] = speedVal;
+  motorSpeeds[MRIGHT] = -speedVal;
+  motorSpeeds[MBACK] = -speedVal;
+}
+
+void turnCCW(char val) {
+  char speedVal = constrain(val, -127, 127);
+  motorSpeeds[MLEFT] = -speedVal;
+  motorSpeeds[MFRONT] = -speedVal;
+  motorSpeeds[MRIGHT] = speedVal;
+  motorSpeeds[MBACK] = speedVal;
+}
+
 void stopDriveMotors(void) {
   for(int i = 0;i < MOTORS;i++) {
     motorSpeeds[i] = 0;

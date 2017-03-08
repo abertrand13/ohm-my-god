@@ -34,7 +34,7 @@
 
 // Timers
 #define TMR_ALIGN 1         // Timer to rotate away from IR sensor
-#define TMR_ALIGN_VAL 250   // Time to run timer for
+#define TMR_ALIGN_VAL 500   // Time to run timer for
 #define TMR_RETURN 2        // Timer to get to safe space
 #define TMR_RETURN_VAL 1000 // Time to run return timer for
 #define TMR_REFILL 3        // Timer to pause for refilling
@@ -116,6 +116,7 @@ void setup() {
   // setMotorSpeed(MRIGHT, 100);
   TMRArd_InitTimer(TIMER_0, ONE_SEC);
   state = ALIGN_IR;
+  turnCCW(100);
   location = REFILL;
 }
 
@@ -320,13 +321,14 @@ bool checkTape() {
 /*---------------Event Handler Functions--------------------*/
 
 void handleIRAlign() {
-  // state = ALIGN_TURN; //commented for serial comms testing - uncomment when done
-  
+  state = ALIGN_TURN; //commented for serial comms testing - uncomment when done
   TMRArd_InitTimer(TMR_ALIGN, TMR_ALIGN_VAL); 
+  turnCW(100);
 }
 
 void handleTurnTimerExpired() {
   state = ALIGN_LEFT;
+  stopDriveMotors();
   TMRArd_ClearTimerExpired(TMR_ALIGN);
   // move left toward wall
   moveLeft(100);
@@ -470,4 +472,8 @@ void setupPins() {
   pinMode(PIN_TAPE,     INPUT);
 
   pinMode(PIN_IR_ALIGN, INPUT);
+
+  // TX/RX 
+  pinMode(0, INPUT);
+  pinMode(1, OUTPUT);
 }
