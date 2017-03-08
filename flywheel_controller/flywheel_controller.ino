@@ -218,6 +218,7 @@ void fireAway() {
     case TMRArd_EXPIRED:
 	  // Timer has run out (we're done firing)
 	  state = FIND_DEST;
+	  ballsLeft -= ballsToFire;
 	  TMRArd_ClearTimerExpired(TMR_FIRE);
 	  digitalWrite(LED_BUILTIN, LOW);
 	  break;
@@ -226,6 +227,7 @@ void fireAway() {
 	  ballsToFire = 3;
 	  // this will have to be more involved later, but...
 	  // start motors
+	  setFeedMotorSpeed(50);
 	  digitalWrite(LED_BUILTIN, HIGH);
 	  TMRArd_InitTimer(TMR_FIRE, ballsToFire * FIRE_CONSTANT);
 	  break;

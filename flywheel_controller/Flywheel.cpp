@@ -13,12 +13,13 @@ Library for motors
 /*---------------------------Module Variables--------------------------------*/
 
 char motorSpeed;
+char feedMotorSpeed;
 
 /*===========================Module Code=====================================*/
 
 void applyMotorSettings(void) {
     updateDutyCycle();
-	// analogWrite(PIN_FEED_EN, 50);
+	analogWrite(PIN_FEED_EN, feedMotorSpeed);
 }
 
 char getFlywheelMotorSpeed(void) {
@@ -31,6 +32,14 @@ void setFlywheelMotorSpeed(char val) {
 
 void stopFlywheelMotor(void) {
   motorSpeed = 0;
+}
+
+void setFeedMotorSpeed(char val) {
+  feedMotorSpeed = constrain(val, 0, 100);
+}
+
+void stopFeedMotor() {
+  feedMotorSpeed = 0;
 }
 
 void setupMotorPins(void) {

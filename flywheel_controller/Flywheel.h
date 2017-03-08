@@ -25,6 +25,8 @@ void applyMotorSettings(void);
 char getFlywheelMotorSpeed(void);
 void setFlywheelMotorSpeed(char val);
 void stopFlywheelMotor(void);
+void setFeedMotorSpeed(char val);
+void stopFeedMotor(void);
 void setupMotorPins(void);
 
 // Slow PWM
