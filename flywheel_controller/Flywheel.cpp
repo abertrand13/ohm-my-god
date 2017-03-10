@@ -20,6 +20,8 @@ char feedMotorSpeed;
 void applyMotorSettings(void) {
     updateDutyCycle();
 	analogWrite(PIN_FEED_EN, feedMotorSpeed);
+	digitalWrite(PIN_FEED_A, feedMotorSpeed > 0 ? HIGH : LOW);
+	digitalWrite(PIN_FEED_B, feedMotorSpeed > 0 ? LOW : HIGH);
 }
 
 char getFlywheelMotorSpeed(void) {

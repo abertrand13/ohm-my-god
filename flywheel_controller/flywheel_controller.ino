@@ -30,7 +30,7 @@
 
 // Constants
 #define BALL_CAPACITY 9
-#define IR_ON_LOW 900
+#define IR_ON_LOW 800
 #define IR_50_HIGH 600
 #define IR_50_LOW 400
 #define IR_25_HIGH 300
@@ -38,7 +38,9 @@
 
 // Firing
 #define TMR_FIRE 7			// Timer to control firing feed
-#define FIRE_CONSTANT 1000	// Time to feed per ball
+#define FIRE_CONSTANT 250	// Time to feed per ball
+#define TMR_GAS 8
+#define TMR_GAS_VAL 500
 
 enum globalState {
 	ALIGN_IR, 			// Getting initial bearings with IR
@@ -86,7 +88,9 @@ void setup() {
 
   state = ALIGN_IR;
 
-  setFlywheelMotorSpeed(50);
+  setFlywheelMotorSpeed(80);
+  setFeedMotorSpeed(-50);
+  TMRArd_InitTimer(TMR_GAS, TMR_GAS_VAL);
 
   // Timer for testing serial comms
   TMRArd_InitTimer(8, 1000);
@@ -130,10 +134,15 @@ void loop() {
 void checkEvents() {
   inputSignal = receiveSignal();
 
+  if(TMRArd_IsTimerExpired(TMR_GAS)) {
+	TMRArd_ClearTimerExpired(TMR_GAS);
+	setFlywheelMotorSpeed(65);
+  }
+
   switch(state) {
   	case ALIGN_IR:
-  	  // if (checkIRAlign()) { handleIRAlign(); } // Actual code 
-  	  if(TMRArd_IsTimerExpired(8)) handleIRAlign(); // Testing Code for serial comm
+  	  if (checkIRAlign()) { handleIRAlign(); } // Actual code 
+  	  // if(TMRArd_IsTimerExpired(8)) handleIRAlign(); // Testing Code for serial comm
       break;
   	
 	case WAIT4ALIGN:
@@ -159,18 +168,20 @@ void checkEvents() {
 }
 
 bool checkIRAlign() {
-  return digitalRead(PIN_IR_ALIGN); // @TD: make this the right pin
+  return analogRead(PIN_IR_ALIGN) > IR_ON_LOW; // @TD: make this the right pin
 }
 
 void handleIRAlign() {
   // pinMode(13, OUTPUT);
-	digitalWrite(LED_BUILTIN, HIGH);
+	// digitalWrite(LED_BUILTIN, HIGH);
 	// delay(1000);
 	// digitalWrite(13, LOW);
+	digitalWrite(RED, HIGH);
 	state = WAIT4ALIGN;
-  	sendSignal(FOUND_IR);
-	delay(500);
-	digitalWrite(LED_BUILTIN, LOW);
+  	sendSignal(FOUND_IR);	
+	setFlywheelMotorSpeed(65);
+	// delay(500);
+	// digitalWrite(LED_BUILTIN, LOW);
 }
 
 void findAndSendDestination() {
@@ -214,6 +225,7 @@ void findAndSendDestination() {
 }
 
 void handleReadyToFire() {
+  digitalWrite(RED, HIGH); 
   location = destination;
   state = FIRING;
 }
@@ -226,7 +238,7 @@ void fireAway() {
 	  ballsLeft -= ballsToFire;
 	  TMRArd_ClearTimerExpired(TMR_FIRE);
 	  digitalWrite(LED_BUILTIN, LOW);
-	  setFeedMotorSpeed(0);
+	  setFeedMotorSpeed(-50);
 	  break;
 	
 	case TMRArd_ERR:
@@ -248,6 +260,7 @@ void handleDoneRefilling() {
   if(inputSignal == REFILL_DONE) {
    	ballsLeft = BALL_CAPACITY;
     state = WAIT4ALIGN;
+	location = REFILL;
   }
 }
 
