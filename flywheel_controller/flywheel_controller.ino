@@ -29,7 +29,7 @@
 #define PIN_IR_ALIGN A4     // IR sensor to align in safe space @TD: Update this to actual value
 
 // Constants
-#define BALL_CAPACITY 9
+#define BALL_CAPACITY 11
 #define IR_ON_LOW 800
 #define IR_50_HIGH 600
 #define IR_50_LOW 400
@@ -37,8 +37,8 @@
 #define IR_25_LOW 150
 
 // Firing
-#define TMR_FIRE 7			// Timer to control firing feed
-#define FIRE_CONSTANT 250	// Time to feed per ball
+// #define TMR_FIRE 7			// Timer to control firing feed
+// #define FIRE_CONSTANT 250	// Time to feed per ball
 #define TMR_GAS 8
 #define TMR_GAS_VAL 500
 
@@ -86,16 +86,16 @@ void setup() {
   setupPins();
   setupMotorPins();
 
-  state = ALIGN_IR;
+  state = MOVE2DEST;
 
-  setFlywheelMotorSpeed(80);
-  setFeedMotorSpeed(-50);
-  TMRArd_InitTimer(TMR_GAS, TMR_GAS_VAL);
+  //setFlywheelMotorSpeed(80);
+  //setFeedMotorSpeed(-50);
+  //TMRArd_InitTimer(TMR_GAS, TMR_GAS_VAL);
 
   // Timer for testing serial comms
-  TMRArd_InitTimer(8, 1000);
+  // TMRArd_InitTimer(8, 1000);
 
-  ballsLeft = 5;
+  ballsLeft = BALL_CAPACITY;
   location = REFILL;
 }
 
@@ -136,7 +136,7 @@ void checkEvents() {
 
   if(TMRArd_IsTimerExpired(TMR_GAS)) {
 	TMRArd_ClearTimerExpired(TMR_GAS);
-	setFlywheelMotorSpeed(65);
+	//setFlywheelMotorSpeed(65);
   }
 
   switch(state) {
@@ -154,7 +154,9 @@ void checkEvents() {
 	  break;
     
 	case MOVE2DEST:
-	  if(inputSignal == READY2FIRE) { handleReadyToFire(); }
+	  //if(inputSignal == READY2FIRE) { handleReadyToFire(); }
+    //TODO: Change this back
+    handleReadyToFire();
       break;
 
 	case FIRING:
@@ -179,7 +181,7 @@ void handleIRAlign() {
 	digitalWrite(RED, HIGH);
 	state = WAIT4ALIGN;
   	sendSignal(FOUND_IR);	
-	setFlywheelMotorSpeed(65);
+	//setFlywheelMotorSpeed(65);
 	// delay(500);
 	// digitalWrite(LED_BUILTIN, LOW);
 }
@@ -227,25 +229,26 @@ void findAndSendDestination() {
 void handleReadyToFire() {
   digitalWrite(RED, HIGH); 
   location = destination;
+  feedBalls(3);
   state = FIRING;
 }
 
 void fireAway() {
-  switch(TMRArd_IsTimerExpired(TMR_FIRE)) {
+  /*switch(TMRArd_IsTimerExpired(TMR_FIRE)) {
     case TMRArd_EXPIRED:
 	  // Timer has run out (we're done firing)
 	  state = FIND_DEST;
 	  ballsLeft -= ballsToFire;
 	  TMRArd_ClearTimerExpired(TMR_FIRE);
 	  digitalWrite(LED_BUILTIN, LOW);
-	  setFeedMotorSpeed(-50);
+	  // setFeedMotorSpeed(-50);
 	  break;
 	
 	case TMRArd_ERR:
 	  ballsToFire = 3;
 	  // this will have to be more involved later, but...
 	  // start motors
-	  setFeedMotorSpeed(100);
+	  //setFeedMotorSpeed(100);
 	  digitalWrite(LED_BUILTIN, HIGH);
 	  TMRArd_InitTimer(TMR_FIRE, ballsToFire * FIRE_CONSTANT);
 	  break;
@@ -253,7 +256,11 @@ void fireAway() {
 	case TMRArd_NOT_EXPIRED:
 	  // sit tight while balls fire
 	  break;
-  }	
+  }*/
+  if(doneFeeding()) {
+    ballsLeft -= ballsToFire;
+    //state = FIND_DEST;
+  }
 }
 
 void handleDoneRefilling() {

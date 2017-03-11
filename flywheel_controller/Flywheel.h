@@ -17,6 +17,9 @@
 #define PIN_FEED_A 4
 #define PIN_FEED_B 2
 
+#define FEED_PERIOD 200
+#define FEED_TIME 20
+
 #define PINS_PER_MOTOR 3
 
 /*---------------------------Public Functions--------------------------------*/
@@ -25,10 +28,13 @@ void applyMotorSettings(void);
 char getFlywheelMotorSpeed(void);
 void setFlywheelMotorSpeed(char val);
 void stopFlywheelMotor(void);
-void setFeedMotorSpeed(char val);
-void stopFeedMotor(void);
+// void setFeedMotorSpeed(char val);
+// void stopFeedMotor(void);
+void feedBalls(int numBalls);
+bool doneFeeding(void);
 void setupMotorPins(void);
 
 // Slow PWM
 // It's all about the slow pwm :D
 void updateDutyCycle(void);
+void updateFeedMotor(void);

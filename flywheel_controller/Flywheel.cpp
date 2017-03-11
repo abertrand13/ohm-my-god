@@ -14,14 +14,18 @@ Library for motors
 
 char motorSpeed;
 char feedMotorSpeed;
+int ballsFed;
+int ballsToFeed;
+bool continueFeeding;
 
 /*===========================Module Code=====================================*/
 
 void applyMotorSettings(void) {
     updateDutyCycle();
-	analogWrite(PIN_FEED_EN, feedMotorSpeed);
+	/*analogWrite(PIN_FEED_EN, feedMotorSpeed);
 	digitalWrite(PIN_FEED_A, feedMotorSpeed > 0 ? HIGH : LOW);
-	digitalWrite(PIN_FEED_B, feedMotorSpeed > 0 ? LOW : HIGH);
+	digitalWrite(PIN_FEED_B, feedMotorSpeed > 0 ? LOW : HIGH);*/
+    updateFeedMotor();
 }
 
 char getFlywheelMotorSpeed(void) {
@@ -36,13 +40,24 @@ void stopFlywheelMotor(void) {
   motorSpeed = 0;
 }
 
-void setFeedMotorSpeed(char val) {
+/*void setFeedMotorSpeed(char val) {
   feedMotorSpeed = constrain(val, 0, 100);
 }
 
 void stopFeedMotor() {
   feedMotorSpeed = 0;
+}*/
+
+void feedBalls(int numBalls) {
+  ballsFed = 0;
+  ballsToFeed = numBalls;
+  continueFeeding = true;
 }
+
+bool doneFeeding() {
+  return continueFeeding;
+}
+
 
 void setupMotorPins(void) {
     pinMode(PIN_FLY_EN, OUTPUT);
@@ -69,5 +84,18 @@ void updateDutyCycle() {
   }
 }
 
-
+void updateFeedMotor() {
+  int time = millis() % FEED_PERIOD;
+  if(time < FEED_TIME && continueFeeding) {
+    digitalWrite(PIN_FEED_EN, HIGH);
+  } else {
+    if(digitalRead(PIN_FEED_EN)) {
+      ballsFed++;
+    }
+    if(ballsFed == ballsToFeed) {
+      continueFeeding = false;
+    }
+    digitalWrite(PIN_FEED_EN, LOW);
+  }
+}
 
