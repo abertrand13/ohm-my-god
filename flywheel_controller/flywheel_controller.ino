@@ -41,6 +41,7 @@
 // Firing
 // #define TMR_FIRE 7			// Timer to control firing feed
 // #define FIRE_CONSTANT 250	// Time to feed per ball
+#define FLYWHEEL_SPEED 52
 #define TMR_GAS 8
 #define TMR_GAS_VAL 2000
 #define TMR_HOLD 9
@@ -94,8 +95,8 @@ void setup() {
   setupPins();
   setupMotorPins();
  
-  state = ALIGN_IR;
-  // state = WAIT4ALIGN;
+  // state = ALIGN_IR;
+  state = WAIT4ALIGN;
 
   if(RUN_FLY) setFlywheelMotorSpeed(100);
   TMRArd_InitTimer(TMR_GAS, TMR_GAS_VAL);
@@ -109,7 +110,7 @@ void loop() {
   
   if(TMRArd_IsTimerExpired(TMR_GAS) == TMRArd_EXPIRED) {
     TMRArd_ClearTimerExpired(TMR_GAS);
-	  if(RUN_FLY) setFlywheelMotorSpeed(70);
+	  if(RUN_FLY) setFlywheelMotorSpeed(FLYWHEEL_SPEED);
   }
   
   applyMotorSettings();

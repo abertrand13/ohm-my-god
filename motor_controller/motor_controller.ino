@@ -33,18 +33,17 @@
 #define PIN_TAPE A4         // Tape sensor
 
 // Timers
-#define TMR_ALIGN 1         // Timer to rotate away from IR sensor
-#define TMR_ALIGN_VAL 500   // Time to run timer for
-#define TMR_RETURN 2        // Timer to get to safe space
-#define TMR_RETURN_VAL 1500 // Time to run return timer for
-#define TMR_REFILL 3        // Timer to pause for refilling
-#define TMR_REFILL_VAL 4000 // Time to run refill timer for
-#define TMR_DETECTTAPE 4   // Timer to wait to track tape
-#define TMR_DETECTTAPE_VAL 500
-#define CHK 5
-#define CHK_VAL 1500
-#define CHK2 6
-#define CHK2_VAL 550
+#define TMR_ALIGN 1               // Timer to rotate away from IR sensor
+#define TMR_ALIGN_VAL 700         // Time to run timer for
+#define TMR_RETURN 2              // Timer to get to safe space
+#define TMR_RETURN_VAL 1600       // Time to run return timer for
+#define TMR_REFILL 3              // Timer to pause for refilling
+#define TMR_REFILL_VAL 4000       // Time to run refill timer for
+#define TMR_STRAFE_RIGHT 5        // Timer for avoiding balls
+#define TMR_STRAFE_RIGHT_VAL 800  // Time to run strafe timer for
+#define TMR_DETECTTAPE 6          // Timer to wait to track tape after hitting the front wall
+#define TMR_DETECTTAPE_VAL 500    // Time to run detect tape timer for
+
 
 #define TIMER_0 0
 #define ONE_SEC 1000
@@ -70,6 +69,7 @@ void handleBackContact(void);
 void handleLeftLimitSwitchesAligned(void);
 void handleFrontLimitSwitchesAligned(void);
 void correctLimitSwitches(void);
+void handleAlignmentTape(void);
 void handleTape(void);
 void handleReturnedLeft(void);
 void handleReturnTimerExpired(void);
@@ -92,20 +92,16 @@ enum globalState {
   ALIGN_LEFT,     	// Move to hug the left wall
   ALIGN_LEFT_FRONT, // Switch to move only front wheel
   ALIGN_LEFT_BACK, 	// Switch to move only back wheel
+  FIND_TAPE,        // Find the tape moving out of the safe space
+  STRAFE_RIGHT,     // To avoid corner balls
   ALIGN_FRONT,    	// Move to hug the front wall
-  WAIT4DEST,   		// Waiting for 'Next Goal' signal after initial alignment @TD: @Q: do we need multiple different wait states? @A: Don't think so.
-  MOVE2LEFT,    	// Move to face the left goal
-  // SHOOT_LEFT,   	// Shoot on the left goal
-  MOVE2MID,     	// Move to face the middle goal
-  // SHOOT_MID,    	// Shoot on the middle goal
+  WAIT4DEST,   		  // Waiting for 'Next Goal' signal after initial alignment @TD: @Q: do we need multiple different wait states? @A: Don't think so.
+  MOVE2LEFT,    	  // Move to face the left goal
+  MOVE2MID,     	  // Move to face the middle goal
   MOVE2RIGHT,     	// Move to face the right goal
-  // SHOOT_RIGHT,    	// Shoot on the right goal
   RETURN_LEFT,    	// Move left to return to safe space
   RETURN_BACK,    	// Move back to return to safe space
-  REFILLING,         // Pause in the safe space for refill
-  CONTROL,
-  CHECKOFF2,
-  ALIGN_LEFT_CHECKOFF
+  REFILLING,        // Pause in the safe space for refill
 };
 
 /*---------------Module Variables---------------------------*/
@@ -132,13 +128,9 @@ void setup() {
     TMRArd_InitTimer(TIMER_0, 100);
   }
   // Initial var setup
-  state = ALIGN_IR;
-  // state = ALIGN_LEFT;
-  turnCCW(100);
-
-  // state = ALIGN_FRONT;
-  // moveLeft(100);
-  //destination = REFILL;
+  // state = ALIGN_IR;
+  state = ALIGN_LEFT;
+  turnCCW(100); 
 
   location = REFILL;
   onTape = false;
@@ -149,8 +141,6 @@ void setup() {
 void loop() { 
   checkEvents();
   applyMotorSettings();
-  // Serial.println(int(getMotorSpeed(MLEFT)));
-  // testTape();
 }
 
 /*---------------Event Detection Functions------------------*/
@@ -179,38 +169,46 @@ void checkEvents() {
       break;
 
     case ALIGN_LEFT: {
-	  bool frontContact = checkFrontLeftLimitSwitch();
-	  bool backContact = checkBackLeftLimitSwitch();
+	    bool frontContact = checkFrontLeftLimitSwitch();
+	    bool backContact = checkBackLeftLimitSwitch();
       if(checkLeftLimitSwitchesAligned()) { handleLeftLimitSwitchesAligned(); }
-	  else if(frontContact) { handleFrontContact(); }
-	  else if(backContact) { handleBackContact(); }
+	    else if(frontContact) { handleFrontContact(); }
+	    else if(backContact) { handleBackContact(); }
       break; } // braces for scoping
 
-	case ALIGN_LEFT_FRONT:
-	  if(checkLeftLimitSwitchesAligned()) { handleLeftLimitSwitchesAligned(); }
-	  else {
-		state = ALIGN_LEFT;
-		moveLeft(100);
-	  }
-	  break;
+	  case ALIGN_LEFT_FRONT:
+      if(checkLeftLimitSwitchesAligned()) { handleLeftLimitSwitchesAligned(); }
+      else {
+      state = ALIGN_LEFT;
+      moveLeft(100);
+      }
+      break;
 
-	case ALIGN_LEFT_BACK:
-	  if(checkLeftLimitSwitchesAligned()) { handleLeftLimitSwitchesAligned(); }
-	  else {
-		state = ALIGN_LEFT;
-		moveLeft(100);
-	  }
-	  break;
+    case ALIGN_LEFT_BACK:
+      if(checkLeftLimitSwitchesAligned()) { handleLeftLimitSwitchesAligned(); }
+      else {
+      state = ALIGN_LEFT;
+      moveLeft(100);
+      }
+      break;
 
+    case FIND_TAPE:
+      if(checkTape()) { handleAlignmentTape(); }
+      break;
+
+    case STRAFE_RIGHT:
+      finishStrafing();
+      break;
+    
     case ALIGN_FRONT:
       if(checkFrontLimitSwitchesAligned()) { handleFrontLimitSwitchesAligned(); }
       break;
 
    	/*--------- END ALIGNMENT STATES ---------*/ 
 	
-	case WAIT4DEST:
-      handleNextGoal();
-      break;
+    case WAIT4DEST:
+        handleNextGoal();
+        break;
 
     case MOVE2LEFT:
       correctLimitSwitches();
@@ -228,15 +226,15 @@ void checkEvents() {
       if(checkTape() ) handleTape();
       break;    
     
-	case MOVE2RIGHT:
-      correctLimitSwitches();
-      if(checkTape()) handleTape();
-      break;
-    
-	case RETURN_LEFT: 
-      correctLimitSwitches();
-      if(checkLeftLimitSwitchesAligned()) { handleReturnedLeft(); }
-      break;
+    case MOVE2RIGHT:
+        correctLimitSwitches();
+        if(checkTape()) handleTape();
+        break;
+      
+    case RETURN_LEFT: 
+        correctLimitSwitches();
+        if(checkLeftLimitSwitchesAligned()) { handleReturnedLeft(); }
+        break;
 
     case RETURN_BACK:
       if(TMRArd_IsTimerExpired(TMR_RETURN)) { handleReturnTimerExpired(); }
@@ -245,22 +243,7 @@ void checkEvents() {
     case REFILLING:
       if(TMRArd_IsTimerExpired(TMR_REFILL) == TMRArd_EXPIRED) { handleRefillTimerExpired(); }
       break;
-
-    case CONTROL:
-      checkOffHack();
-      break;
-
-    case CHECKOFF2:
-      handchk2();
-      break;
-
-    case ALIGN_LEFT_CHECKOFF:
-      if(checkLeftLimitSwitchesAligned()) { 
-        stopDriveMotors(); 
-      }
-      break; // braces for scoping
-  }
-    
+  }   
 }
 
 /******************************************************************************
@@ -357,7 +340,7 @@ void handleTurnTimerExpired() {
 }
 
 void handleLeftLimitSwitchesAligned() {
-  state = ALIGN_FRONT;
+  state = FIND_TAPE;
   stopDriveMotors();
   moveForward(100);
 }
@@ -400,6 +383,21 @@ void handleTape() {
   state = WAIT4DEST;
 }
 
+void handleAlignmentTape() {
+  state = STRAFE_RIGHT;
+  TMRArd_InitTimer(TMR_STRAFE_RIGHT, TMR_STRAFE_RIGHT_VAL);
+  stopDriveMotors();
+  moveRight(100);
+}
+
+void finishStrafing() {
+  if(TMRArd_IsTimerExpired(TMR_STRAFE_RIGHT)) {
+    state = ALIGN_FRONT;
+    stopDriveMotors();
+    moveForward(100);
+  }
+}
+
 void handleReturnedLeft() {
   state = RETURN_BACK;
   stopDriveMotors();
@@ -416,7 +414,7 @@ void handleReturnTimerExpired() {
 }
 
 void handleRefillTimerExpired() {
-  state = ALIGN_FRONT;
+  state = FIND_TAPE;
   setHigh();
   sendSignal(REFILL_DONE);
   TMRArd_ClearTimerExpired(TMR_REFILL);
@@ -493,7 +491,7 @@ void testTape(void) {
   }
 }
 
-void checkOffHack(void) {
+/*void checkOffHack(void) {
     setHigh();
 
   if(TMRArd_IsTimerExpired(CHK)) {
@@ -520,4 +518,4 @@ void handchk(void) {
       stopDriveMotors();
       moveBack(100);
       TMRArd_InitTimer(CHK, CHK_VAL);
-}
+}*/
