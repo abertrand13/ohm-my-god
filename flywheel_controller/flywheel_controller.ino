@@ -24,6 +24,7 @@
 #define YELLOW A0
 #define RED A1
 #define GREEN A2
+#define SERIAL_DEBUG 0
 
 // IR sensor 
 #define PIN_IR_ALIGN A4     // IR sensor to align in safe space @TD: Update this to actual value
@@ -86,10 +87,9 @@ void setup() {
   setupPins();
   setupMotorPins();
 
-  state = MOVE2DEST;
+  state = WAIT4ALIGN;
 
   //setFlywheelMotorSpeed(80);
-  //setFeedMotorSpeed(-50);
   //TMRArd_InitTimer(TMR_GAS, TMR_GAS_VAL);
 
   // Timer for testing serial comms
@@ -100,23 +100,6 @@ void setup() {
 }
 
 void loop() {
-    /*if(Serial.available()) {
-      char motor = Serial.read();
-      int x = Serial.parseInt();
-      Serial.println(x);
-
-      setFlywheelMotorSpeed(char(x));
-
-      // if(x != -128) {
-      //   setMotorSpeed(select, char(x));
-      // } else {
-      //   flipMotorDirection(select);
-      // }
-       Serial.read(); //newline @Q: Why is this here?
-
-
-  }*/
-
   checkEvents();
 
   applyMotorSettings();
@@ -132,32 +115,29 @@ void loop() {
 ******************************************************************************/
 
 void checkEvents() {
-  inputSignal = receiveSignal();
+  inputSignal = receiveSignal(SERIAL_DEBUG);
 
   if(TMRArd_IsTimerExpired(TMR_GAS)) {
-	TMRArd_ClearTimerExpired(TMR_GAS);
-	//setFlywheelMotorSpeed(65);
+    TMRArd_ClearTimerExpired(TMR_GAS);
+	  //setFlywheelMotorSpeed(65);
   }
 
   switch(state) {
   	case ALIGN_IR:
   	  if (checkIRAlign()) { handleIRAlign(); } // Actual code 
-  	  // if(TMRArd_IsTimerExpired(8)) handleIRAlign(); // Testing Code for serial comm
       break;
   	
 	case WAIT4ALIGN:
   	  if(inputSignal == ALIGNED) { state = FIND_DEST; }
 	  break;
 	
-	case FIND_DEST: // @TD this should be broken into two states (decide instructions and send? Idk) I think we're actually good. I know what you mean though, I was thinking the same thing.
+	case FIND_DEST:
 	  findAndSendDestination();
 	  break;
     
 	case MOVE2DEST:
-	  //if(inputSignal == READY2FIRE) { handleReadyToFire(); }
-    //TODO: Change this back
-    handleReadyToFire();
-      break;
+	  if(inputSignal == READY2FIRE) { handleReadyToFire(); }
+    break;
 
 	case FIRING:
 	  fireAway();
@@ -178,9 +158,9 @@ void handleIRAlign() {
 	// digitalWrite(LED_BUILTIN, HIGH);
 	// delay(1000);
 	// digitalWrite(13, LOW);
-	digitalWrite(RED, HIGH);
+	// digitalWrite(RED, HIGH);
 	state = WAIT4ALIGN;
-  	sendSignal(FOUND_IR);	
+  sendSignal(FOUND_IR);	
 	//setFlywheelMotorSpeed(65);
 	// delay(500);
 	// digitalWrite(LED_BUILTIN, LOW);
@@ -194,33 +174,34 @@ void findAndSendDestination() {
 	 */
 
   if(ballsLeft <= 0) {
-	// if we have no balls left we should refill
-	destination = REFILL;
-	sendSignal(NEXT_REFILL);
-	state = REFILLING;
+	  // if we have no balls left we should refill
+	  destination = REFILL;
+	  sendSignal(NEXT_REFILL);
+	  state = REFILLING;
   } else {
     // simple, move right and then refill
-	switch(location) {
-	  case REFILL:
-	    destination = GOAL_LEFT;
-		sendSignal(NEXT_LEFT);
-		break;
+    switch(location) {
+      case REFILL:
+        digitalWrite(RED, HIGH); 
+        destination = GOAL_LEFT;
+        sendSignal(NEXT_LEFT);
+        break;
 
       case GOAL_LEFT:
         destination = GOAL_MID;
-		sendSignal(NEXT_MID);
-		break;
-      
-	  case GOAL_MID:
-		destination = GOAL_RIGHT;
-		sendSignal(NEXT_RIGHT);
-		break;
-	
-	  case GOAL_RIGHT:
-		destination = REFILL;
-		sendSignal(NEXT_REFILL);
+        sendSignal(NEXT_MID);
+        break;
+        
+      case GOAL_MID:
+        destination = GOAL_RIGHT;
+        sendSignal(NEXT_RIGHT);
+        break;
+    
+      case GOAL_RIGHT:
+        destination = REFILL;
+        sendSignal(NEXT_REFILL);
         break;	  
-	}
+    }
   }
 
   state = MOVE2DEST;
@@ -259,16 +240,14 @@ void fireAway() {
   }*/
   if(doneFeeding()) {
     ballsLeft -= ballsToFire;
-    //state = FIND_DEST;
+    state = FIND_DEST;
   }
 }
 
 void handleDoneRefilling() {
-  if(inputSignal == REFILL_DONE) {
-   	ballsLeft = BALL_CAPACITY;
-    state = WAIT4ALIGN;
-	location = REFILL;
-  }
+  ballsLeft = BALL_CAPACITY;
+  state = WAIT4ALIGN;
+  location = REFILL;
 }
 
 /*void updateSignal() {

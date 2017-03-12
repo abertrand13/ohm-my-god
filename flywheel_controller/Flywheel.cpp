@@ -55,7 +55,7 @@ void feedBalls(int numBalls) {
 }
 
 bool doneFeeding() {
-  return continueFeeding;
+  return !continueFeeding;
 }
 
 

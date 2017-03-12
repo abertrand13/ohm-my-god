@@ -18,7 +18,8 @@
 /*---------------Module Defines-----------------------------*/
 
 #define DEBUG 1
-#define CHECKOFF 1
+#define SERIAL_DEBUG 0
+#define CHECKOFF 0
 
 // Pinout
 
@@ -130,9 +131,8 @@ void setup() {
     digitalWrite(A5, LOW);
     TMRArd_InitTimer(TIMER_0, 100);
   }
-  delay(6000); //Delay for flywheel to spin up
   // Initial var setup
-  state = ALIGN_IR;
+  state = ALIGN_TURN;
   turnCCW(100);
 
   // state = ALIGN_FRONT;
@@ -148,7 +148,8 @@ void setup() {
 void loop() { 
   checkEvents();
   applyMotorSettings();
-  // testTape();
+  // Serial.println(int(getMotorSpeed(MLEFT)));
+  testTape();
 }
 
 /*---------------Event Detection Functions------------------*/
@@ -163,7 +164,7 @@ void loop() {
 ******************************************************************************/
 
 void checkEvents() {
-  inputSignal = receiveSignal();
+  inputSignal = receiveSignal(SERIAL_DEBUG);
 
   switch(state) {
     case ALIGN_IR:
@@ -233,9 +234,9 @@ void checkEvents() {
     
 	case RETURN_LEFT:
       //checkoff hack
-      handchk();
-      // correctLimitSwitches();
-      // if(checkLeftLimitSwitchesAligned()) { handleReturnedLeft(); }
+      // handchk();
+      correctLimitSwitches();
+      if(checkLeftLimitSwitchesAligned()) { handleReturnedLeft(); }
       break;
 
     case RETURN_BACK:
@@ -422,9 +423,11 @@ void handleRefillTimerExpired() {
 }
 
 void handleNextGoal() { 
+  
+      digitalWrite(A5, HIGH);
   switch(inputSignal) {
-    case NEXT_LEFT:
-   	  state = MOVE2LEFT;
+    case NEXT_LEFT:  
+      state = MOVE2LEFT;
 	    destination = GOAL_LEFT;
       setDestination();
       break;
@@ -441,11 +444,10 @@ void handleNextGoal() {
       setDestination();
       break;
 
-    case NEXT_REFILL:
-      
+    case NEXT_REFILL: 
       state = RETURN_LEFT;
-	    // destination = REFILL;
-     //  setDestination();
+	    destination = REFILL;
+      setDestination();
       break;
 
     default:
@@ -458,9 +460,9 @@ void setDestination(void) {
   int dest = destination;
 
   if(loc < dest) {
-  moveRight(100);
+    moveRight(100);
   } else if(loc > dest) {
-  moveLeft(100);
+    moveLeft(100);
   } else if(loc == dest) {
   // do nothing because we probably haven't gotten a new destination
   }
@@ -488,8 +490,9 @@ void setLow(void) {
 
 void testTape(void) {
   if(TMRArd_IsTimerExpired(0)) {
-    Serial.println(analogRead(A4));
-    TMRArd_InitTimer(0, 10);
+    // Serial.println("tape = ");
+    // Serial.println(analogRead(A4));
+    TMRArd_InitTimer(TIMER_0, 100);
   }
 }
 
