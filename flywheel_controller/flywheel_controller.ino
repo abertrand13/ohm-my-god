@@ -25,13 +25,14 @@
 #define RED A1
 #define GREEN A2
 #define SERIAL_DEBUG 0
+#define RUN_FLY 1
 
 // IR sensor 
-#define PIN_IR_ALIGN A4     // IR sensor to align in safe space @TD: Update this to actual value
+#define PIN_IR_ALIGN A3     // IR sensor to align in safe space @TD: Update this to actual value
 
 // Constants
 #define BALL_CAPACITY 11
-#define IR_ON_LOW 800
+#define IR_ON_LOW 250
 #define IR_50_HIGH 600
 #define IR_50_LOW 400
 #define IR_25_HIGH 300
@@ -41,15 +42,19 @@
 // #define TMR_FIRE 7			// Timer to control firing feed
 // #define FIRE_CONSTANT 250	// Time to feed per ball
 #define TMR_GAS 8
-#define TMR_GAS_VAL 500
+#define TMR_GAS_VAL 2000
+#define TMR_HOLD 9
+#define TMR_HOLD_VAL 500
 
 enum globalState {
 	ALIGN_IR, 			// Getting initial bearings with IR
 	WAIT4ALIGN, 		// IR beacon has been located, and bot is finding wall
 	FIND_DEST,			// Logic to find next destination
 	MOVE2DEST,			// Moving to next destination
-	FIRING,				// IMMA FIRIN MAH LAZERRRR
-	REFILLING			// Moving to safe space and refilling
+  HOLD_PRE_FIRE,	// Waiting for motors to stop
+  FIRING,				  // IMMA FIRIN MAH LAZERRRR
+  HOLD_POST_FIRE, // Waiting.
+	REFILLING			  // Moving to safe space and refilling
 };
 
 /*---------------Module Function Prototypes-----------------*/
@@ -62,7 +67,9 @@ void handleIRAlign(void);
 
 void findAndSendDestination(void);
 void handleReadyToFire(void);
+void startHolding(void);
 void fireAway(void);
+void finishHolding(void);
 void handleDoneRefilling(void);
 
 /* Signal Functions
@@ -86,22 +93,25 @@ void setup() {
   Serial.begin(9600);
   setupPins();
   setupMotorPins();
+ 
+  state = ALIGN_IR;
+  // state = WAIT4ALIGN;
 
-  state = WAIT4ALIGN;
-
-  //setFlywheelMotorSpeed(80);
-  //TMRArd_InitTimer(TMR_GAS, TMR_GAS_VAL);
-
-  // Timer for testing serial comms
-  // TMRArd_InitTimer(8, 1000);
-
+  if(RUN_FLY) setFlywheelMotorSpeed(100);
+  TMRArd_InitTimer(TMR_GAS, TMR_GAS_VAL);
+  
   ballsLeft = BALL_CAPACITY;
   location = REFILL;
 }
 
 void loop() {
   checkEvents();
-
+  
+  if(TMRArd_IsTimerExpired(TMR_GAS) == TMRArd_EXPIRED) {
+    TMRArd_ClearTimerExpired(TMR_GAS);
+	  if(RUN_FLY) setFlywheelMotorSpeed(70);
+  }
+  
   applyMotorSettings();
 }
 
@@ -117,11 +127,6 @@ void loop() {
 void checkEvents() {
   inputSignal = receiveSignal(SERIAL_DEBUG);
 
-  if(TMRArd_IsTimerExpired(TMR_GAS)) {
-    TMRArd_ClearTimerExpired(TMR_GAS);
-	  //setFlywheelMotorSpeed(65);
-  }
-
   switch(state) {
   	case ALIGN_IR:
   	  if (checkIRAlign()) { handleIRAlign(); } // Actual code 
@@ -136,12 +141,20 @@ void checkEvents() {
 	  break;
     
 	case MOVE2DEST:
-	  if(inputSignal == READY2FIRE) { handleReadyToFire(); }
+	  if(inputSignal == READY2FIRE) { startHolding(); }
     break;
 
-	case FIRING:
+  case HOLD_PRE_FIRE:
+    handleReadyToFire();
+    break;
+  
+  case FIRING:
 	  fireAway();
 	  break;
+
+  case HOLD_POST_FIRE:
+    finishHolding();
+    break;
 
 	case REFILLING:
 	  if(inputSignal == REFILL_DONE) { handleDoneRefilling(); }
@@ -182,36 +195,45 @@ void findAndSendDestination() {
     // simple, move right and then refill
     switch(location) {
       case REFILL:
-        digitalWrite(RED, HIGH); 
+        digitalWrite(GREEN, !digitalRead(GREEN)); 
         destination = GOAL_LEFT;
         sendSignal(NEXT_LEFT);
+        state = MOVE2DEST;
         break;
 
       case GOAL_LEFT:
         destination = GOAL_MID;
         sendSignal(NEXT_MID);
+        state = MOVE2DEST;
         break;
         
       case GOAL_MID:
         destination = GOAL_RIGHT;
         sendSignal(NEXT_RIGHT);
+        state = MOVE2DEST;
         break;
     
       case GOAL_RIGHT:
+        state = REFILLING; 
         destination = REFILL;
         sendSignal(NEXT_REFILL);
         break;	  
     }
   }
+}
 
-  state = MOVE2DEST;
+void startHolding() {
+  location = destination;
+  state = HOLD_PRE_FIRE;
+  TMRArd_InitTimer(TMR_HOLD, TMR_HOLD_VAL);
 }
 
 void handleReadyToFire() {
-  digitalWrite(RED, HIGH); 
-  location = destination;
-  feedBalls(3);
-  state = FIRING;
+  if(TMRArd_IsTimerExpired(TMR_HOLD)) {
+    TMRArd_ClearTimerExpired(TMR_HOLD);
+    feedBalls(3);
+    state = FIRING;
+  } 
 }
 
 void fireAway() {
@@ -240,11 +262,20 @@ void fireAway() {
   }*/
   if(doneFeeding()) {
     ballsLeft -= ballsToFire;
+    TMRArd_InitTimer(TMR_HOLD, TMR_HOLD_VAL);
+    state = HOLD_POST_FIRE;
+  }
+}
+
+void finishHolding() {
+  if(TMRArd_IsTimerExpired(TMR_HOLD) == TMRArd_EXPIRED) {
+    TMRArd_ClearTimerExpired(TMR_HOLD);
     state = FIND_DEST;
   }
 }
 
 void handleDoneRefilling() {
+  digitalWrite(YELLOW, HIGH); 
   ballsLeft = BALL_CAPACITY;
   state = WAIT4ALIGN;
   location = REFILL;

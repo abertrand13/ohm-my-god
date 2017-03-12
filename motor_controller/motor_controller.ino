@@ -132,7 +132,8 @@ void setup() {
     TMRArd_InitTimer(TIMER_0, 100);
   }
   // Initial var setup
-  state = ALIGN_TURN;
+  state = ALIGN_IR;
+  // state = ALIGN_LEFT;
   turnCCW(100);
 
   // state = ALIGN_FRONT;
@@ -149,7 +150,7 @@ void loop() {
   checkEvents();
   applyMotorSettings();
   // Serial.println(int(getMotorSpeed(MLEFT)));
-  testTape();
+  // testTape();
 }
 
 /*---------------Event Detection Functions------------------*/
@@ -232,9 +233,7 @@ void checkEvents() {
       if(checkTape()) handleTape();
       break;
     
-	case RETURN_LEFT:
-      //checkoff hack
-      // handchk();
+	case RETURN_LEFT: 
       correctLimitSwitches();
       if(checkLeftLimitSwitchesAligned()) { handleReturnedLeft(); }
       break;
@@ -244,7 +243,7 @@ void checkEvents() {
       break;
 
     case REFILLING:
-      if(TMRArd_IsTimerExpired(TMR_REFILL)) { handleRefillTimerExpired(); }
+      if(TMRArd_IsTimerExpired(TMR_REFILL) == TMRArd_EXPIRED) { handleRefillTimerExpired(); }
       break;
 
     case CONTROL:
@@ -381,6 +380,7 @@ void handleFrontLimitSwitchesAligned() {
   stopDriveMotors();
   sendSignal(ALIGNED);
   state = WAIT4DEST;
+
   TMRArd_InitTimer(TMR_DETECTTAPE, TMR_DETECTTAPE_VAL);
 }
 
@@ -417,6 +417,7 @@ void handleReturnTimerExpired() {
 
 void handleRefillTimerExpired() {
   state = ALIGN_FRONT;
+  setHigh();
   sendSignal(REFILL_DONE);
   TMRArd_ClearTimerExpired(TMR_REFILL);
   moveForward(100);
@@ -424,7 +425,6 @@ void handleRefillTimerExpired() {
 
 void handleNextGoal() { 
   
-      digitalWrite(A5, HIGH);
   switch(inputSignal) {
     case NEXT_LEFT:  
       state = MOVE2LEFT;
@@ -449,9 +449,6 @@ void handleNextGoal() {
 	    destination = REFILL;
       setDestination();
       break;
-
-    default:
-    break;	
   }
 }
 
@@ -459,12 +456,12 @@ void setDestination(void) {
   int loc = location;
   int dest = destination;
 
+  // digitalWrite(A5, !digitalRead(A5));
+  
   if(loc < dest) {
     moveRight(100);
   } else if(loc > dest) {
     moveLeft(100);
-  } else if(loc == dest) {
-  // do nothing because we probably haven't gotten a new destination
   }
 }
 
