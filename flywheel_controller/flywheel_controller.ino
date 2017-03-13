@@ -66,6 +66,12 @@ enum globalState {
   STOPPED
 };
 
+enum goalState {
+  BLOCKED,
+  LOSING,
+  WINNING
+}
+
 /*---------------Module Function Prototypes-----------------*/
 void setupPins(void);
 void checkEvents(void);
@@ -231,11 +237,35 @@ void startHolding() {
 void handleReadyToFire() {
   if(TMRArd_IsTimerExpired(TMR_HOLD)) {
     TMRArd_ClearTimerExpired(TMR_HOLD);
-    if(checkTowerAvailable()) {
-      ballsToFire = 4;
-    } else {
-      ballsToFire = 0;
+    enum goalState state = checkTowerAvailable(); 
+    
+    switch(state) {
+      case BLOCKED:
+        ballsToFire = 0;
+        break;
+
+      case LOSING:
+        switch(location) {
+          case GOAL_LEFT
+            ballsToFire = 8;
+            break;
+
+          case GOAL_MID:
+            ballsToFire = ballsLeft;
+            break;
+
+          case GOAL_RIGHT:
+            ballsToFire = ballsLeft;
+            break;
+        }
+        break;
+
+      case WINNING:
+        ballsToFire = 4;
+        break;
+      
     }
+     
     feedBalls(ballsToFire);
     state = FIRING;
   } 
@@ -263,8 +293,18 @@ void handleDoneRefilling() {
   location = REFILL;
 }
 
-bool checkTowerAvailable(void) {
+enum goalState checkTowerAvailable(void) {
   return analogRead(PIN_IR_TOWER) > TOWER_IR_ON_LOW;
+  int val = analogRead(PIN_IR_TOWER);
+  if(val <= IR_ON_LOW) {
+    return BLOCKED;
+  } else if(val >= IR_25_LOW && val <= IR_25_HIGH) {
+    return WINNING;
+  } else if(val >= IR_50_LOW && val <= IR_50_HIGH) {
+    return LOSING;
+  } else {
+    return WINNING; // Because when in doubt, we win.
+  }
 }
 
 void setupPins() {

@@ -36,7 +36,7 @@
 #define TMR_ALIGN 1               // Timer to rotate away from IR sensor
 #define TMR_ALIGN_VAL 700         // Time to run timer for
 #define TMR_RETURN_LEFT 7         // Timer to run along the wall for (minimize drift)
-#define TMR_RETURN_LEFT_VAL 1000  // Time to run the timer for (constant, gets multiplied)
+#define TMR_RETURN_LEFT_VAL 1200  // Time to run the timer for (constant, gets multiplied)
 #define TMR_RETURN 2              // Timer to backup off wall, to get to safe space
 #define TMR_RETURN_VAL 600        // Time to run return timer for
 #define TMR_REFILL 3              // Timer to pause for refilling
@@ -45,6 +45,10 @@
 #define TMR_STRAFE_RIGHT_VAL 1300 // Time to run strafe timer for
 #define TMR_DETECTTAPE 6          // Timer to wait to track tape after hitting the front wall
 #define TMR_DETECTTAPE_VAL 500    // Time to run detect tape timer for
+#define TMR_ROLLBACK 8            // Timer to roll back into safe space
+#define TMR_ROLLBACK_VAL 200      // 
+#define TMR_TIMEOUT 9             // Timer for if we get f**ked by balls on the wall
+#define TMR_TIMEOUT_VAL 3000     // If a transition hasn't completed in 3 seconds that's bad
 
 #define TIMER_0 0
 #define ONE_SEC 1000
@@ -76,6 +80,7 @@ void startReturningLeft(void);
 void handleReturnedLeft(void);
 void handleReturnTimerExpired(void);
 void handleTapeOnBackup(void);
+void handleRolledBack(void);
 void handleRefillTimerExpired(void);
 void handleNextGoal(void);
 void handleStoppage(void);
@@ -107,6 +112,7 @@ enum globalState {
   RETURN_OFFWALL,   // Backup off wall 
   RETURN_LEFT,    	// Move left to return to safe space
   RETURN_BACK,    	// Move back to return to safe space
+  ROLLBACK,         // Because I can't get hardBrake to work RIP
   REFILLING,        // Pause in the safe space for refill
   STOPPED           // for shutting down at the end of the match
 };
@@ -214,6 +220,10 @@ void checkEvents() {
     
     case ALIGN_FRONT:
       if(checkFrontLimitSwitchesAligned()) { handleFrontLimitSwitchesAligned(); }
+      if(TMRArd_IsTimerExpired(TMR_TIMEOUT) == TMRArd_EXPIRED) { 
+        TMRArd_ClearTimerExpired(TMR_TIMEOUT);
+        handleFrontLimitSwitchesAligned(); // faking it
+      }
       break;
 
    	/*--------- END ALIGNMENT STATES ---------*/ 
@@ -254,10 +264,18 @@ void checkEvents() {
        
     case RETURN_LEFT: 
       if(checkLeftLimitSwitchesAligned()) { handleReturnedLeft(); }
+      if(TMRArd_IsTimerExpired(TMR_TIMEOUT)) {
+        TMRArd_ClearTimerExpired(TMR_TIMEOUT);
+        handleReturnedLeft();
+      }
       break;
 
     case RETURN_BACK:
       if(checkTape()) { handleTapeOnBackup(); }
+      break;
+
+    case ROLLBACK:
+      if(TMRArd_IsTimerExpired(TMR_ROLLBACK) == TMRArd_EXPIRED) { handleRolledBack(); }
       break;
 
     case REFILLING:
@@ -414,11 +432,13 @@ void finishStrafing() {
     state = ALIGN_FRONT;
     stopDriveMotors();
     moveForward(100);
+    TMRArd_InitTimer(TMR_TIMEOUT, TMR_TIMEOUT_VAL);
   }
 }
 
 void startReturningLeft() {
   state = RETURN_LEFT;
+  TMRArd_InitTimer(TMR_TIMEOUT, TMR_TIMEOUT_VAL);
   stopDriveMotors();
   moveLeft(100);
 }
@@ -447,10 +467,17 @@ void handleReturnedLeft() {
   TMRArd_InitTimer(TMR_REFILL, TMR_REFILL_VAL);
 }*/
 void handleTapeOnBackup() {
-  digitalWrite(A5, !digitalRead(A5));
-  hardBrake();
+  stopDriveMotors();
+  moveForward(100);
+  state = ROLLBACK;
+  TMRArd_InitTimer(TMR_ROLLBACK, TMR_ROLLBACK_VAL);
+}
+
+void handleRolledBack() {
+  stopDriveMotors();
   state = REFILLING;
   location = REFILL;
+  TMRArd_ClearTimerExpired(TMR_ROLLBACK);
   TMRArd_InitTimer(TMR_REFILL, TMR_REFILL_VAL);
 }
 
@@ -485,7 +512,7 @@ void handleNextGoal() {
 
     case NEXT_REFILL: 
       state = RETURN_LEFT_TIME;
-      TMRArd_InitTimer(TMR_RETURN_LEFT, TMR_RETURN_LEFT_VAL * location);
+      TMRArd_InitTimer(TMR_RETURN_LEFT, TMR_RETURN_LEFT_VAL * location + ((location-1) ? 2000 : 0));
 	    destination = REFILL;
       setDestination();
       break;

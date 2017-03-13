@@ -49,8 +49,9 @@ void stopFeedMotor() {
 }*/
 
 void feedBalls(int numBalls) {
+  if(numBalls == 0) return; 
   ballsFed = 0;
-  ballsToFeed = numBalls;
+  ballsToFeed = numBalls <= 4 ? numBalls : numBalls + 3; //hacky.
   continueFeeding = true;
 }
 
