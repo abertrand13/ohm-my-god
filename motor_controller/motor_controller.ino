@@ -36,9 +36,9 @@
 #define TMR_ALIGN 1               // Timer to rotate away from IR sensor
 #define TMR_ALIGN_VAL 700         // Time to run timer for
 #define TMR_RETURN_LEFT 7         // Timer to run along the wall for (minimize drift)
-#define TMR_RETURN_LEFT_VAL 3000  // Time to run the timer for
+#define TMR_RETURN_LEFT_VAL 1000  // Time to run the timer for (constant, gets multiplied)
 #define TMR_RETURN 2              // Timer to backup off wall, to get to safe space
-#define TMR_RETURN_VAL 800        // Time to run return timer for
+#define TMR_RETURN_VAL 600        // Time to run return timer for
 #define TMR_REFILL 3              // Timer to pause for refilling
 #define TMR_REFILL_VAL 4000       // Time to run refill timer for
 #define TMR_STRAFE_RIGHT 5        // Timer for avoiding balls
@@ -485,7 +485,7 @@ void handleNextGoal() {
 
     case NEXT_REFILL: 
       state = RETURN_LEFT_TIME;
-      TMRArd_InitTimer(TMR_RETURN_LEFT, TMR_RETURN_LEFT_VAL);
+      TMRArd_InitTimer(TMR_RETURN_LEFT, TMR_RETURN_LEFT_VAL * location);
 	    destination = REFILL;
       setDestination();
       break;

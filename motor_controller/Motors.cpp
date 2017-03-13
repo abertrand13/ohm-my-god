@@ -38,9 +38,9 @@ void applyMotorSettings() {
     digitalWrite(motorPins[i][2], getMotorForward(i) ? LOW : HIGH);
   }
 
-  if(braking && ((millis() - brakeTime) > BRAKE_TIME)) {
-    stopDriveMotors();
+  if(braking && ((millis() - brakeTime) > BRAKE_TIME)) {  
     braking = false;
+    stopDriveMotors();
 
     // after braking is done, copy values from queue
     if(queued) {
