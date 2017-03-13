@@ -28,15 +28,18 @@
 #define RUN_FLY 0
 
 // IR sensor 
-#define PIN_IR_ALIGN A3     // IR sensor to align in safe space @TD: Update this to actual value
+#define PIN_IR_ALIGN A3 
+#define PIN_IR_TOWER A4 
 
 // Constants
 #define BALL_CAPACITY 12
 #define IR_ON_LOW 250
-#define IR_50_HIGH 600
+#define IR_50_HIGH 600 // Losing or Tied
 #define IR_50_LOW 400
-#define IR_25_HIGH 300
+#define IR_25_HIGH 300 // Winning
 #define IR_25_LOW 150
+
+#define TOWER_IR_ON_LOW 150 // Lower threshold to detect any IR at all
 
 // Firing
 // #define TMR_FIRE 7			// Timer to control firing feed
@@ -69,6 +72,7 @@ void checkEvents(void);
 
 // Logic Functions
 bool checkIRAlign(void);
+bool checkTowerAvailable(void);
 void handleIRAlign(void);
 
 void findAndSendDestination(void);
@@ -77,12 +81,6 @@ void startHolding(void);
 void fireAway(void);
 void finishHolding(void);
 void handleDoneRefilling(void);
-
-/* Signal Functions
-// now pulled out into separate library
-void updateSignal(void);
-void sendSignal(char signal);*/
-
 
 /*---------------Module Variables---------------------------*/
 
@@ -156,7 +154,7 @@ void checkEvents() {
 	  break;
     
 	case MOVE2DEST:
-	  if(inputSignal == READY2FIRE) { startHolding(); }
+	  if(inputSignal == READY2FIRE) { startHolding();}
     break;
 
   case HOLD_PRE_FIRE:
@@ -178,28 +176,15 @@ void checkEvents() {
 }
 
 bool checkIRAlign() {
-  return analogRead(PIN_IR_ALIGN) > IR_ON_LOW; // @TD: make this the right pin
+  return analogRead(PIN_IR_ALIGN) > IR_ON_LOW;
 }
 
 void handleIRAlign() {
-  // pinMode(13, OUTPUT);
-	// digitalWrite(LED_BUILTIN, HIGH);
-	// delay(1000);
-	// digitalWrite(13, LOW);
-	// digitalWrite(RED, HIGH);
 	state = WAIT4ALIGN;
   sendSignal(FOUND_IR);	
-	//setFlywheelMotorSpeed(65);
-	// delay(500);
-	// digitalWrite(LED_BUILTIN, LOW);
 }
 
 void findAndSendDestination() {
-  /* NOTE:
-	 THIS RIGHT HERE IS THE BIG ENCHILADA
-	 ALL OUR STRATEGY GOES HERE
-	 SHIT GUYZ
-	 */
 
   if(ballsLeft <= 0) {
 	  // if we have no balls left we should refill
@@ -246,35 +231,17 @@ void startHolding() {
 void handleReadyToFire() {
   if(TMRArd_IsTimerExpired(TMR_HOLD)) {
     TMRArd_ClearTimerExpired(TMR_HOLD);
-    feedBalls(4);
+    if(checkTowerAvailable()) {
+      ballsToFire = 3;
+    } else {
+      ballsToFire = 0;
+    }
+    feedBalls(ballsToFire);
     state = FIRING;
   } 
 }
 
 void fireAway() {
-  /*switch(TMRArd_IsTimerExpired(TMR_FIRE)) {
-    case TMRArd_EXPIRED:
-	  // Timer has run out (we're done firing)
-	  state = FIND_DEST;
-	  ballsLeft -= ballsToFire;
-	  TMRArd_ClearTimerExpired(TMR_FIRE);
-	  digitalWrite(LED_BUILTIN, LOW);
-	  // setFeedMotorSpeed(-50);
-	  break;
-	
-	case TMRArd_ERR:
-	  ballsToFire = 3;
-	  // this will have to be more involved later, but...
-	  // start motors
-	  //setFeedMotorSpeed(100);
-	  digitalWrite(LED_BUILTIN, HIGH);
-	  TMRArd_InitTimer(TMR_FIRE, ballsToFire * FIRE_CONSTANT);
-	  break;
-
-	case TMRArd_NOT_EXPIRED:
-	  // sit tight while balls fire
-	  break;
-  }*/
   if(doneFeeding()) {
     ballsLeft -= ballsToFire;
     TMRArd_InitTimer(TMR_HOLD, TMR_HOLD_VAL);
@@ -296,21 +263,13 @@ void handleDoneRefilling() {
   location = REFILL;
 }
 
-/*void updateSignal() {
-  if(Serial.available()) {
-		inputSignal = Serial.read();
-	} else {
-		inputSignal = '0'; // @Q: chars are single quotes - is that what I should use? Yes.
-	}
-	Serial.read(); 
+bool checkTowerAvailable(void) {
+  return analogRead(PIN_IR_TOWER) > TOWER_IR_ON_LOW;
 }
-
-void sendSignal(char signal) {
-	Serial.write(signal);
-}*/
 
 void setupPins() {
   pinMode(PIN_IR_ALIGN, INPUT);
+  pinMode(PIN_IR_TOWER, INPUT);
   pinMode(LED_BUILTIN, OUTPUT);
 
   pinMode(YELLOW, OUTPUT);
