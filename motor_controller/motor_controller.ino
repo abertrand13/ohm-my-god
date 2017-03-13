@@ -48,7 +48,9 @@
 #define TMR_ROLLBACK 8            // Timer to roll back into safe space
 #define TMR_ROLLBACK_VAL 200      // 
 #define TMR_TIMEOUT 9             // Timer for if we get f**ked by balls on the wall
-#define TMR_TIMEOUT_VAL 3000     // If a transition hasn't completed in 3 seconds that's bad
+#define TMR_TIMEOUT_VAL 3000      // If a transition hasn't completed in 3 seconds that's bad
+#define TMR_JITTER 4              // Make sure to drop the bass/tape sensor
+#define TMR_JITTER_VAL 300
 
 #define TIMER_0 0
 #define ONE_SEC 1000
@@ -73,6 +75,7 @@ void handleFrontContact(void);
 void handleBackContact(void);
 void handleLeftLimitSwitchesAligned(void);
 void handleFrontLimitSwitchesAligned(void);
+void jitter(void);
 void correctLimitSwitches(void);
 void handleAlignmentTape(void);
 void handleTape(void);
@@ -101,6 +104,7 @@ enum globalState {
   ALIGN_LEFT,     	// Move to hug the left wall
   ALIGN_LEFT_FRONT, // Switch to move only front wheel
   ALIGN_LEFT_BACK, 	// Switch to move only back wheel
+  JITTER,           // to make sure we drop the tape sensor
   FIND_TAPE,        // Find the tape moving out of the safe space
   STRAFE_RIGHT,     // To avoid corner balls
   ALIGN_FRONT,    	// Move to hug the front wall
@@ -125,6 +129,7 @@ enum signal inputSignal;
 enum Location location;
 enum Location destination;
 bool detectTape;
+int jitters;
 
 /*---------------Main Functions-----------------------------*/
 void setup() {
@@ -149,6 +154,7 @@ void setup() {
   onTape = false;
   detectTape = false;
   inputSignal = NONE;
+  jitters = 0;
 }
 
 void loop() { 
@@ -208,6 +214,10 @@ void checkEvents() {
       state = ALIGN_LEFT;
       moveLeft(100);
       }
+      break;
+
+    case JITTER:
+      jitter(); 
       break;
 
     case FIND_TAPE:
@@ -378,9 +388,10 @@ void handleTurnTimerExpired() {
 }
 
 void handleLeftLimitSwitchesAligned() {
-  state = FIND_TAPE;
+  state = JITTER;
+  TMRArd_InitTimer(TMR_JITTER, TMR_JITTER_VAL);
   stopDriveMotors();
-  moveForward(100);
+  moveBack(127);
 }
 
 void handleFrontContact() {
@@ -395,6 +406,22 @@ void handleBackContact() {
   stopDriveMotors();
   setMotorSpeed(MFRONT, -100);
   setMotorSpeed(MLEFT, -75);
+}
+
+void jitter() { 
+  if(TMRArd_IsTimerExpired(TMR_JITTER) == TMRArd_EXPIRED) {
+    jitters++;
+    TMRArd_ClearTimerExpired(TMR_JITTER); 
+    if(jitters == 2) {
+      state = FIND_TAPE;
+      stopDriveMotors();
+      moveForward(100);
+    } else {
+      flipMotorDirection(MLEFT);
+      flipMotorDirection(MRIGHT);
+      TMRArd_InitTimer(TMR_JITTER, TMR_JITTER_VAL);
+    }
+  }
 }
 
 void handleFrontLimitSwitchesAligned() {
