@@ -232,7 +232,7 @@ void handleReadyToFire() {
   if(TMRArd_IsTimerExpired(TMR_HOLD)) {
     TMRArd_ClearTimerExpired(TMR_HOLD);
     if(checkTowerAvailable()) {
-      ballsToFire = 3;
+      ballsToFire = 4;
     } else {
       ballsToFire = 0;
     }
