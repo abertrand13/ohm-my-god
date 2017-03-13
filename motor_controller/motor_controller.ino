@@ -38,9 +38,9 @@
 #define TMR_RETURN_LEFT 7         // Timer to run along the wall for (minimize drift)
 #define TMR_RETURN_LEFT_VAL 1200  // Time to run the timer for (constant, gets multiplied)
 #define TMR_RETURN 2              // Timer to backup off wall, to get to safe space
-#define TMR_RETURN_VAL 600        // Time to run return timer for
+#define TMR_RETURN_VAL 900        // Time to run return timer for
 #define TMR_REFILL 3              // Timer to pause for refilling
-#define TMR_REFILL_VAL 4000       // Time to run refill timer for
+#define TMR_REFILL_VAL 5000       // Time to run refill timer for
 #define TMR_STRAFE_RIGHT 5        // Timer for avoiding balls
 #define TMR_STRAFE_RIGHT_VAL 1300 // Time to run strafe timer for
 #define TMR_DETECTTAPE 6          // Timer to wait to track tape after hitting the front wall
@@ -141,8 +141,8 @@ void setup() {
     TMRArd_InitTimer(TIMER_0, 100);
   }
   // Initial var setup
-  // state = ALIGN_IR;
-  state = ALIGN_LEFT;
+  state = ALIGN_IR;
+  // state = ALIGN_LEFT;
   turnCCW(100); 
 
   location = REFILL;

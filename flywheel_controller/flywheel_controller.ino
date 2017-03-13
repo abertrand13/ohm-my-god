@@ -25,7 +25,7 @@
 #define RED A1
 #define GREEN A2
 #define SERIAL_DEBUG 0
-#define RUN_FLY 0
+#define RUN_FLY 1
 
 // IR sensor 
 #define PIN_IR_ALIGN A3 
@@ -33,20 +33,18 @@
 
 // Constants
 #define BALL_CAPACITY 12
-#define IR_ON_LOW 250
+#define IR_ON_LOW 50
 #define IR_50_HIGH 600 // Losing or Tied
-#define IR_50_LOW 400
+#define IR_50_LOW 350
 #define IR_25_HIGH 300 // Winning
-#define IR_25_LOW 150
-
-#define TOWER_IR_ON_LOW 150 // Lower threshold to detect any IR at all
+#define IR_25_LOW 100
 
 // Firing
 // #define TMR_FIRE 7			// Timer to control firing feed
 // #define FIRE_CONSTANT 250	// Time to feed per ball
-#define FLYWHEEL_SPEED 52
+#define FLYWHEEL_SPEED 53
 #define TMR_GAS 8
-#define TMR_GAS_VAL 2000
+#define TMR_GAS_VAL 2500
 #define TMR_HOLD 9
 #define TMR_HOLD_VAL 500
 
@@ -70,7 +68,7 @@ enum goalState {
   BLOCKED,
   LOSING,
   WINNING
-}
+};
 
 /*---------------Module Function Prototypes-----------------*/
 void setupPins(void);
@@ -78,7 +76,7 @@ void checkEvents(void);
 
 // Logic Functions
 bool checkIRAlign(void);
-bool checkTowerAvailable(void);
+goalState checkTowerAvailable(void);
 void handleIRAlign(void);
 
 void findAndSendDestination(void);
@@ -104,8 +102,8 @@ void setup() {
   setupPins();
   setupMotorPins();
  
-  // state = ALIGN_IR;
-  state = WAIT4ALIGN;
+  state = ALIGN_IR;
+  // state = WAIT4ALIGN;
 
   if(RUN_FLY) setFlywheelMotorSpeed(100);
   TMRArd_InitTimer(TMR_GAS, TMR_GAS_VAL);
@@ -237,16 +235,26 @@ void startHolding() {
 void handleReadyToFire() {
   if(TMRArd_IsTimerExpired(TMR_HOLD)) {
     TMRArd_ClearTimerExpired(TMR_HOLD);
-    enum goalState state = checkTowerAvailable(); 
+    enum goalState stateOfGoal = checkTowerAvailable(); 
     
-    switch(state) {
+    switch(stateOfGoal) {
       case BLOCKED:
-        ballsToFire = 0;
+        switch(location) {
+          case GOAL_LEFT:
+            ballsToFire = 2;
+            break;
+          case GOAL_RIGHT:
+            ballsToFire = ballsLeft;
+            break;
+          default:
+            ballsToFire = 0;
+            break;
+        }
         break;
 
       case LOSING:
         switch(location) {
-          case GOAL_LEFT
+          case GOAL_LEFT:
             ballsToFire = 8;
             break;
 
@@ -261,9 +269,16 @@ void handleReadyToFire() {
         break;
 
       case WINNING:
-        ballsToFire = 4;
-        break;
-      
+        switch(location) {
+          case GOAL_RIGHT:
+            ballsToFire = ballsLeft;
+            break;
+
+          default:
+            ballsToFire = 4;
+            break;
+        }
+        break; 
     }
      
     feedBalls(ballsToFire);
@@ -293,8 +308,7 @@ void handleDoneRefilling() {
   location = REFILL;
 }
 
-enum goalState checkTowerAvailable(void) {
-  return analogRead(PIN_IR_TOWER) > TOWER_IR_ON_LOW;
+goalState checkTowerAvailable(void) {
   int val = analogRead(PIN_IR_TOWER);
   if(val <= IR_ON_LOW) {
     return BLOCKED;
