@@ -21,6 +21,11 @@ char motorPins[MOTORS][PINS_PER_MOTOR] = {
 };
 
 char motorSpeeds[MOTORS];
+char motorSpeedsQueue[MOTORS];
+
+bool braking;
+int brakeTime;
+bool queued;
 
 /*===========================Module Code=====================================*/
 
@@ -31,6 +36,19 @@ void applyMotorSettings() {
     // write direction
     digitalWrite(motorPins[i][1], getMotorForward(i) ? HIGH : LOW);
     digitalWrite(motorPins[i][2], getMotorForward(i) ? LOW : HIGH);
+  }
+
+  if(braking && ((millis() - brakeTime) > BRAKE_TIME)) {
+    stopDriveMotors();
+    braking = false;
+
+    // after braking is done, copy values from queue
+    if(queued) {
+      for(int i = 0;i < MOTORS;i++) {
+        motorSpeeds[i] = motorSpeedsQueue[i];
+      }
+      queued = false;
+    }
   }
 }
 
@@ -48,26 +66,50 @@ void setMotorSpeed(int motor, char val) {
 
 void moveLeft(char val) {
   char speedVal = constrain(val, -127, 127);
-  motorSpeeds[MFRONT] = -speedVal;
-  motorSpeeds[MBACK] = -speedVal;
+  if(braking) {
+    motorSpeedsQueue[MFRONT] = -speedVal;
+    motorSpeedsQueue[MBACK] = -speedVal;
+    queued = true;
+  } else {
+    motorSpeeds[MFRONT] = -speedVal;
+    motorSpeeds[MBACK] = -speedVal;
+  } 
 }
 
 void moveRight(char val) {
   char speedVal = constrain(val, -127, 127);
-  motorSpeeds[MFRONT] = speedVal;
-  motorSpeeds[MBACK] = speedVal;
+  if(braking) {
+    motorSpeedsQueue[MFRONT] = speedVal;
+    motorSpeedsQueue[MBACK] = speedVal;
+    queued = true;
+  } else {
+    motorSpeeds[MFRONT] = speedVal;
+    motorSpeeds[MBACK] = speedVal;
+  }
 }
 
 void moveBack(char val) {
   char speedVal = constrain(val, -127, 127);
-  motorSpeeds[MLEFT] = -speedVal;
-  motorSpeeds[MRIGHT] = -speedVal;
+  if(braking) { 
+    motorSpeedsQueue[MLEFT] = -speedVal;
+    motorSpeedsQueue[MRIGHT] = -speedVal;
+    queued = true;
+  } else { 
+    motorSpeeds[MLEFT] = -speedVal;
+    motorSpeeds[MRIGHT] = -speedVal;
+  }
 }
 
 void moveForward(char val) {
   char speedVal = constrain(val, -127, 127);
-  motorSpeeds[MLEFT] = speedVal;
-  motorSpeeds[MRIGHT] = speedVal;
+  if(braking) {
+    motorSpeedsQueue[MLEFT] = speedVal;
+    motorSpeedsQueue[MRIGHT] = speedVal;
+    queued = true;
+  } else {
+    motorSpeeds[MLEFT] = speedVal;
+    motorSpeeds[MRIGHT] = speedVal;
+  }
 }
 
 void turnCW(char val) {
@@ -92,6 +134,15 @@ void stopDriveMotors(void) {
   }
 }
 
+void hardBrake() {
+  // send a short reverse pulse
+  for(int i = 0;i < MOTORS;i++) {
+    flipMotorDirection(i);
+  }
+  brakeTime = millis(); 
+  braking = true;
+}
+
 void flipMotorDirection(int motor) {
   motorSpeeds[motor] = map(motorSpeeds[motor], -127, 127, 127, -127);
 }
@@ -104,5 +155,7 @@ void setupMotorPins(void) {
       pinMode(motorPins[i][j], OUTPUT);
     }
   }
+
+  braking = false;
 }
 

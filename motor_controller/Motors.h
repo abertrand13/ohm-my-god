@@ -31,6 +31,8 @@
 #define MOTORS 4
 #define PINS_PER_MOTOR 3
 
+#define BRAKE_TIME 200
+
 
 /*---------------------------Public Functions--------------------------------*/
 // Motor Reference
@@ -52,5 +54,6 @@ void moveForward(char val);
 void turnCW(char val); // Turn Clockwise
 void turnCCW(char val); // Turn Counter-Clockwise
 void stopDriveMotors(void);
+void hardBrake(void);
 void flipMotorDirection(int motor);
 void setupMotorPins(void);

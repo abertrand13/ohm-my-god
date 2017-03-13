@@ -18,7 +18,7 @@
 #define PIN_FEED_B 2
 
 #define FEED_PERIOD 200
-#define FEED_TIME 20
+#define FEED_TIME 40
 
 #define PINS_PER_MOTOR 3
 

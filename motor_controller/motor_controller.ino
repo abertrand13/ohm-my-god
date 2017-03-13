@@ -24,26 +24,27 @@
 // Pinout
 
 // Limit Switches
-#define PIN_LIMIT_BL A0     // Back limit switch on left side
-#define PIN_LIMIT_FL A1     // Front limit switch on left side
-#define PIN_LIMIT_LF A2     // Left limit switch on front side
-#define PIN_LIMIT_RF A3     // Right limit switch on front side
+#define PIN_LIMIT_BL A0           // Back limit switch on left side
+#define PIN_LIMIT_FL A1           // Front limit switch on left side
+#define PIN_LIMIT_LF A2           // Left limit switch on front side
+#define PIN_LIMIT_RF A3           // Right limit switch on front side
 
 // Tape sensor
-#define PIN_TAPE A4         // Tape sensor
+#define PIN_TAPE A4               // Tape sensor
 
 // Timers
 #define TMR_ALIGN 1               // Timer to rotate away from IR sensor
 #define TMR_ALIGN_VAL 700         // Time to run timer for
-#define TMR_RETURN 2              // Timer to get to safe space
-#define TMR_RETURN_VAL 1600       // Time to run return timer for
+#define TMR_RETURN_LEFT 7         // Timer to run along the wall for (minimize drift)
+#define TMR_RETURN_LEFT_VAL 3000  // Time to run the timer for
+#define TMR_RETURN 2              // Timer to backup off wall, to get to safe space
+#define TMR_RETURN_VAL 800        // Time to run return timer for
 #define TMR_REFILL 3              // Timer to pause for refilling
 #define TMR_REFILL_VAL 4000       // Time to run refill timer for
 #define TMR_STRAFE_RIGHT 5        // Timer for avoiding balls
-#define TMR_STRAFE_RIGHT_VAL 800  // Time to run strafe timer for
+#define TMR_STRAFE_RIGHT_VAL 1300 // Time to run strafe timer for
 #define TMR_DETECTTAPE 6          // Timer to wait to track tape after hitting the front wall
 #define TMR_DETECTTAPE_VAL 500    // Time to run detect tape timer for
-
 
 #define TIMER_0 0
 #define ONE_SEC 1000
@@ -71,10 +72,13 @@ void handleFrontLimitSwitchesAligned(void);
 void correctLimitSwitches(void);
 void handleAlignmentTape(void);
 void handleTape(void);
+void startReturningLeft(void);
 void handleReturnedLeft(void);
 void handleReturnTimerExpired(void);
+void handleTapeOnBackup(void);
 void handleRefillTimerExpired(void);
 void handleNextGoal(void);
+void handleStoppage(void);
 void setDestination(void);
 void setupSensorPins(void);
 
@@ -99,9 +103,12 @@ enum globalState {
   MOVE2LEFT,    	  // Move to face the left goal
   MOVE2MID,     	  // Move to face the middle goal
   MOVE2RIGHT,     	// Move to face the right goal
+  RETURN_LEFT_TIME, // Move left to return to *almost* the safe space
+  RETURN_OFFWALL,   // Backup off wall 
   RETURN_LEFT,    	// Move left to return to safe space
   RETURN_BACK,    	// Move back to return to safe space
   REFILLING,        // Pause in the safe space for refill
+  STOPPED           // for shutting down at the end of the match
 };
 
 /*---------------Module Variables---------------------------*/
@@ -156,6 +163,11 @@ void loop() {
 
 void checkEvents() {
   inputSignal = receiveSignal(SERIAL_DEBUG);
+
+  if(inputSignal == STOPAF) {
+    state = STOPPED;
+    handleStoppage();
+  }
 
   switch(state) {
     case ALIGN_IR:
@@ -227,17 +239,25 @@ void checkEvents() {
       break;    
     
     case MOVE2RIGHT:
-        correctLimitSwitches();
-        if(checkTape()) handleTape();
-        break;
-      
+      correctLimitSwitches();
+      if(checkTape()) handleTape();
+      break;
+
+    case RETURN_LEFT_TIME:
+      correctLimitSwitches();
+      if(TMRArd_IsTimerExpired(TMR_RETURN_LEFT) == TMRArd_EXPIRED) { handleFirstReturnComplete(); }
+      break;
+    
+    case RETURN_OFFWALL:
+      if(TMRArd_IsTimerExpired(TMR_RETURN) == TMRArd_EXPIRED) { startReturningLeft(); }
+      break;
+       
     case RETURN_LEFT: 
-        correctLimitSwitches();
-        if(checkLeftLimitSwitchesAligned()) { handleReturnedLeft(); }
-        break;
+      if(checkLeftLimitSwitchesAligned()) { handleReturnedLeft(); }
+      break;
 
     case RETURN_BACK:
-      if(TMRArd_IsTimerExpired(TMR_RETURN)) { handleReturnTimerExpired(); }
+      if(checkTape()) { handleTapeOnBackup(); }
       break;
 
     case REFILLING:
@@ -372,8 +392,7 @@ void correctLimitSwitches() {
   setMotorSpeed(MLEFT, digitalRead(PIN_LIMIT_LF) ? 0 : 50);
 }
 
-void handleTape() {
-  
+void handleTape() { 
   // Operating on the assumption that we never skip goals...
   location = destination;
   
@@ -386,7 +405,7 @@ void handleTape() {
 void handleAlignmentTape() {
   state = STRAFE_RIGHT;
   TMRArd_InitTimer(TMR_STRAFE_RIGHT, TMR_STRAFE_RIGHT_VAL);
-  stopDriveMotors();
+  hardBrake(); 
   moveRight(100);
 }
 
@@ -398,6 +417,21 @@ void finishStrafing() {
   }
 }
 
+void startReturningLeft() {
+  state = RETURN_LEFT;
+  stopDriveMotors();
+  moveLeft(100);
+}
+
+void handleFirstReturnComplete() {
+  // for when we finish our timed move left and we're almost at the safe space
+  state = RETURN_OFFWALL;
+  TMRArd_ClearTimerExpired(TMR_RETURN_LEFT);
+  TMRArd_InitTimer(TMR_RETURN, TMR_RETURN_VAL);
+  stopDriveMotors();
+  moveBack(100);
+}
+
 void handleReturnedLeft() {
   state = RETURN_BACK;
   stopDriveMotors();
@@ -405,11 +439,18 @@ void handleReturnedLeft() {
   TMRArd_InitTimer(TMR_RETURN, TMR_RETURN_VAL);
 }
 
-void handleReturnTimerExpired() {
+/*void handleReturnTimerExpired() {
   state = REFILLING;
   location = REFILL;
   TMRArd_ClearTimerExpired(TMR_RETURN);
   stopDriveMotors();
+  TMRArd_InitTimer(TMR_REFILL, TMR_REFILL_VAL);
+}*/
+void handleTapeOnBackup() {
+  digitalWrite(A5, !digitalRead(A5));
+  hardBrake();
+  state = REFILLING;
+  location = REFILL;
   TMRArd_InitTimer(TMR_REFILL, TMR_REFILL_VAL);
 }
 
@@ -443,7 +484,8 @@ void handleNextGoal() {
       break;
 
     case NEXT_REFILL: 
-      state = RETURN_LEFT;
+      state = RETURN_LEFT_TIME;
+      TMRArd_InitTimer(TMR_RETURN_LEFT, TMR_RETURN_LEFT_VAL);
 	    destination = REFILL;
       setDestination();
       break;
@@ -473,6 +515,11 @@ void setupPins() {
   // TX/RX 
   pinMode(0, INPUT);
   pinMode(1, OUTPUT);
+}
+
+void handleStoppage() {
+  state = STOPPED; 
+  stopDriveMotors();
 }
 
 void setHigh(void) {

@@ -25,13 +25,13 @@
 #define RED A1
 #define GREEN A2
 #define SERIAL_DEBUG 0
-#define RUN_FLY 1
+#define RUN_FLY 0
 
 // IR sensor 
 #define PIN_IR_ALIGN A3     // IR sensor to align in safe space @TD: Update this to actual value
 
 // Constants
-#define BALL_CAPACITY 11
+#define BALL_CAPACITY 12
 #define IR_ON_LOW 250
 #define IR_50_HIGH 600
 #define IR_50_LOW 400
@@ -47,6 +47,10 @@
 #define TMR_HOLD 9
 #define TMR_HOLD_VAL 500
 
+// Stopping
+#define TMR_GAME 10
+#define GAME_LENGTH 130000
+
 enum globalState {
 	ALIGN_IR, 			// Getting initial bearings with IR
 	WAIT4ALIGN, 		// IR beacon has been located, and bot is finding wall
@@ -55,7 +59,8 @@ enum globalState {
   HOLD_PRE_FIRE,	// Waiting for motors to stop
   FIRING,				  // IMMA FIRIN MAH LAZERRRR
   HOLD_POST_FIRE, // Waiting.
-	REFILLING			  // Moving to safe space and refilling
+	REFILLING,			// Moving to safe space and refilling
+  STOPPED
 };
 
 /*---------------Module Function Prototypes-----------------*/
@@ -103,6 +108,9 @@ void setup() {
   
   ballsLeft = BALL_CAPACITY;
   location = REFILL;
+
+  // start game timer
+  TMRArd_InitTimer(TMR_GAME, GAME_LENGTH);
 }
 
 void loop() {
@@ -127,6 +135,12 @@ void loop() {
 
 void checkEvents() {
   inputSignal = receiveSignal(SERIAL_DEBUG);
+
+  if(TMRArd_IsTimerExpired(TMR_GAME)) {
+    state = STOPPED;
+    sendSignal(STOPAF);
+    stopFlywheelMotor();
+  }
 
   switch(state) {
   	case ALIGN_IR:
@@ -232,7 +246,7 @@ void startHolding() {
 void handleReadyToFire() {
   if(TMRArd_IsTimerExpired(TMR_HOLD)) {
     TMRArd_ClearTimerExpired(TMR_HOLD);
-    feedBalls(3);
+    feedBalls(4);
     state = FIRING;
   } 
 }
