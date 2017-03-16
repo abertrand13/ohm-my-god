@@ -42,7 +42,7 @@
 // Firing
 // #define TMR_FIRE 7			// Timer to control firing feed
 // #define FIRE_CONSTANT 250	// Time to feed per ball
-#define FLYWHEEL_SPEED 53
+#define FLYWHEEL_SPEED 56
 #define TMR_GAS 8
 #define TMR_GAS_VAL 2500
 #define TMR_HOLD 9
@@ -275,7 +275,7 @@ void handleReadyToFire() {
             break;
 
           default:
-            ballsToFire = 4;
+            ballsToFire = 2;
             break;
         }
         break; 
