@@ -40,8 +40,6 @@
 #define IR_25_LOW 100
 
 // Firing
-// #define TMR_FIRE 7			// Timer to control firing feed
-// #define FIRE_CONSTANT 250	// Time to feed per ball
 #define FLYWHEEL_SPEED 56
 #define TMR_GAS 8
 #define TMR_GAS_VAL 2500
@@ -103,7 +101,6 @@ void setup() {
   setupMotorPins();
  
   state = ALIGN_IR;
-  // state = WAIT4ALIGN;
 
   if(RUN_FLY) setFlywheelMotorSpeed(100);
   TMRArd_InitTimer(TMR_GAS, TMR_GAS_VAL);
@@ -146,7 +143,7 @@ void checkEvents() {
 
   switch(state) {
   	case ALIGN_IR:
-  	  if (checkIRAlign()) { handleIRAlign(); } // Actual code 
+  	  if (checkIRAlign()) { handleIRAlign(); }
       break;
   	
 	case WAIT4ALIGN:

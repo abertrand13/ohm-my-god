@@ -17,9 +17,7 @@
 
 /*---------------Module Defines-----------------------------*/
 
-#define DEBUG 1
 #define SERIAL_DEBUG 0
-#define CHECKOFF 0
 
 // Pinout
 
@@ -93,7 +91,6 @@ void setupSensorPins(void);
 // Debugging
 void setHigh(void);
 void setLow(void);
-void testTape(void);
 void checkOffHack(void);
 void handchk(void);
 void handchk2(void);
@@ -137,17 +134,8 @@ void setup() {
   setupPins();
   setupMotorPins();
   
-  if(DEBUG) {
-    pinMode(A5, OUTPUT);
-    delay(1000);
-    digitalWrite(A5, HIGH);
-    delay(500);
-    digitalWrite(A5, LOW);
-    TMRArd_InitTimer(TIMER_0, 100);
-  }
   // Initial var setup
   state = ALIGN_IR;
-  // state = ALIGN_LEFT;
   turnCCW(100); 
 
   location = REFILL;
@@ -367,7 +355,6 @@ bool checkTape() {
     onTape = tape;
     return false;
   }
-  // moveLeft(100);
 }
 
 
@@ -486,13 +473,6 @@ void handleReturnedLeft() {
   TMRArd_InitTimer(TMR_RETURN, TMR_RETURN_VAL);
 }
 
-/*void handleReturnTimerExpired() {
-  state = REFILLING;
-  location = REFILL;
-  TMRArd_ClearTimerExpired(TMR_RETURN);
-  stopDriveMotors();
-  TMRArd_InitTimer(TMR_REFILL, TMR_REFILL_VAL);
-}*/
 void handleTapeOnBackup() {
   stopDriveMotors();
   moveForward(100);
@@ -550,8 +530,6 @@ void setDestination(void) {
   int loc = location;
   int dest = destination;
 
-  // digitalWrite(A5, !digitalRead(A5));
-  
   if(loc < dest) {
     moveRight(100);
   } else if(loc > dest) {
@@ -583,40 +561,3 @@ void setHigh(void) {
 void setLow(void) {
     digitalWrite(A5, LOW);
 }
-
-void testTape(void) {
-  if(TMRArd_IsTimerExpired(0)) {
-    // Serial.println("tape = ");
-    // Serial.println(analogRead(A4));
-    TMRArd_InitTimer(TIMER_0, 100);
-  }
-}
-
-/*void checkOffHack(void) {
-    setHigh();
-
-  if(TMRArd_IsTimerExpired(CHK)) {
-    TMRArd_ClearTimerExpired(CHK);
-    stopDriveMotors();
-    TMRArd_InitTimer(CHK2, CHK2_VAL);
-    turnCCW(100);
-    state = CHECKOFF2;
-  }
-
-}
-
-void handchk2(void) {
-  if(TMRArd_IsTimerExpired(CHK2)) {
-    TMRArd_ClearTimerExpired(CHK2);
-    stopDriveMotors();
-    state = ALIGN_LEFT_CHECKOFF;
-    moveLeft(100);
-  }
-}
-
-void handchk(void) {
-      state = CONTROL;  
-      stopDriveMotors();
-      moveBack(100);
-      TMRArd_InitTimer(CHK, CHK_VAL);
-}*/
