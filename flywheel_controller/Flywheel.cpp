@@ -3,7 +3,7 @@
 Module
 Flywheel.cpp
 Description
-Library for motors
+Library for flywheel control.
 
 =============================================================================*/
 
@@ -21,11 +21,8 @@ bool continueFeeding;
 /*===========================Module Code=====================================*/
 
 void applyMotorSettings(void) {
-    updateDutyCycle();
-    /*analogWrite(PIN_FEED_EN, feedMotorSpeed);
-    digitalWrite(PIN_FEED_A, feedMotorSpeed > 0 ? HIGH : LOW);
-    digitalWrite(PIN_FEED_B, feedMotorSpeed > 0 ? LOW : HIGH);*/
-    updateFeedMotor();
+  updateDutyCycle();
+  updateFeedMotor();
 }
 
 char getFlywheelMotorSpeed(void) {
@@ -39,14 +36,6 @@ void setFlywheelMotorSpeed(char val) {
 void stopFlywheelMotor(void) {
   motorSpeed = 0;
 }
-
-/*void setFeedMotorSpeed(char val) {
-  feedMotorSpeed = constrain(val, 0, 100);
-}
-
-void stopFeedMotor() {
-  feedMotorSpeed = 0;
-}*/
 
 void feedBalls(int numBalls) {
   if(numBalls == 0) return; 
